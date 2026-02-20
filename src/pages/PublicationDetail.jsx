@@ -1,136 +1,168 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { FaFilePdf, FaCalendarAlt, FaUser, FaTag, FaArrowLeft, FaExternalLinkAlt } from 'react-icons/fa';
-import publicationService from '../services/publication.service';
-import Loader from '../components/Loader';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import AuthService from '../services/auth.service';
 import './PublicationDetail.css';
 
+/* ══════════════════════════════════════════════
+   Détail d'une Publication – ACCÈS LIBRE pour consultation
+   Téléchargement : accessible à tous (selon l'énoncé)
+   ══════════════════════════════════════════════ */
+
 const PublicationDetail = () => {
-    const { id } = useParams();
-    const [publication, setPublication] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const { id }      = useParams();
+    const navigate    = useNavigate();
+    const [pub, setPub]             = useState(null);
+    const [loading, setLoading]     = useState(true);
+    const [error, setError]         = useState(null);
+    const [downloading, setDl]      = useState(false);
 
     useEffect(() => {
-        fetchPublication();
+        api.get(`/publications/${id}`)
+            .then(r => setPub(r.data))
+            .catch(() => setError('Publication introuvable.'))
+            .finally(() => setLoading(false));
     }, [id]);
 
-    const fetchPublication = async () => {
-        try {
-            const data = await publicationService.getById(id);
-            setPublication(data);
-        } catch (err) {
-            setError('Publication non trouvée');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleDownload = async () => {
+        setDl(true);
         try {
-            await publicationService.downloadFile(id);
-        } catch (err) {
-            alert('Erreur lors du téléchargement');
+            const response = await api.get(`/publications/${id}/download`, {
+                responseType: 'blob',
+            });
+            const url  = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href  = url;
+            // Nom du fichier depuis le header ou nom par défaut
+            const disposition = response.headers['content-disposition'];
+            const filename = disposition
+                ? disposition.split('filename=')[1]?.replace(/"/g, '')
+                : `publication-${id}.pdf`;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch {
+            alert('Erreur lors du téléchargement.');
+        } finally {
+            setDl(false);
         }
     };
 
-    if (loading) return <Loader />;
-    if (error) return <div className="error-page container">{error}</div>;
+    if (loading) return (
+        <div className="pub-detail-loading">
+            <div className="spinner" /> Chargement...
+        </div>
+    );
 
-    const chercheurs = publication.chercheursNoms
-        ? Array.from(publication.chercheursNoms)
-        : [];
+    if (error) return (
+        <div className="pub-detail-error">
+            <p>{error}</p>
+            <button onClick={() => navigate(-1)}>← Retour</button>
+        </div>
+    );
 
-    const domainesNoms = publication.domainesNoms
-        ? Array.from(publication.domainesNoms)
-        : [];
-
-    // Associer id et nom pour les chercheurs
-    const chercheursIds = publication.chercheursIds
-        ? Array.from(publication.chercheursIds)
-        : [];
+    const user = AuthService.getCurrentUser();
 
     return (
-        <motion.div
-            className="publication-detail container"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-        >
-            <Link to="/publications" className="back-link">
-                <FaArrowLeft /> Retour aux publications
-            </Link>
+        <div className="pub-detail">
 
-            <h1>{publication.titre}</h1>
+            {/* Breadcrumb */}
+            <nav className="pub-detail__breadcrumb">
+                <Link to="/">Accueil</Link>
+                <span>›</span>
+                <Link to="/publications">Publications</Link>
+                <span>›</span>
+                <span>{pub.titre}</span>
+            </nav>
 
-            <div className="detail-meta">
-                <span><FaCalendarAlt /> {publication.datePublication
-                    ? new Date(publication.datePublication).toLocaleDateString('fr-FR', {
-                        year: 'numeric', month: 'long', day: 'numeric'
-                    })
-                    : 'Date inconnue'}
-                </span>
-                {publication.doi && (
-                    <span className="doi-link">
-                        DOI : <a href={`https://doi.org/${publication.doi}`} target="_blank" rel="noreferrer">
-                            {publication.doi} <FaExternalLinkAlt size={12} />
-                        </a>
-                    </span>
-                )}
-            </div>
+            <div className="pub-detail__layout">
 
-            {publication.resume && (
-                <div className="detail-section">
-                    <h3>Résumé</h3>
-                    <p>{publication.resume}</p>
+                {/* ── Contenu principal ── */}
+                <div className="pub-detail__main">
+                    <div className="pub-detail__badge">{pub.domaine?.nom ?? 'Général'}</div>
+                    <h1 className="pub-detail__title">{pub.titre}</h1>
+
+                    {/* Auteurs */}
+                    {pub.chercheurs?.length > 0 && (
+                        <div className="pub-detail__authors">
+                            <span className="pub-detail__label">Auteurs :</span>
+                            {pub.chercheurs.map((c, i) => (
+                                <span key={c.id}>
+                                    <Link to={`/researchers/${c.id}`} className="pub-detail__author-link">
+                                        {c.prenom} {c.nom}
+                                    </Link>
+                                    {i < pub.chercheurs.length - 1 && ', '}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Résumé */}
+                    {pub.resume && (
+                        <div className="pub-detail__section">
+                            <h2>Résumé</h2>
+                            <p>{pub.resume}</p>
+                        </div>
+                    )}
+
+                    {/* Mots-clés */}
+                    {pub.motsCles && (
+                        <div className="pub-detail__section">
+                            <h2>Mots-clés</h2>
+                            <div className="pub-detail__keywords">
+                                {pub.motsCles.split(',').map(k => (
+                                    <Link key={k.trim()} to={`/search?keyword=${k.trim()}`} className="kw-chip">
+                                        {k.trim()}
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
 
-            <div className="detail-section">
-                <h3><FaUser /> Auteurs</h3>
-                <div className="authors-list">
-                    {chercheursIds.length > 0 ? (
-                        chercheursIds.map((chercheurId, index) => (
-                            <Link
-                                to={`/researchers/${chercheurId}`}
-                                key={chercheurId}
-                                className="author-badge"
+                {/* ── Sidebar ── */}
+                <aside className="pub-detail__sidebar">
+                    <div className="pub-sidebar-card">
+                        <h3>Informations</h3>
+                        <dl>
+                            {pub.annee     && <><dt>Année</dt><dd>{pub.annee}</dd></>}
+                            {pub.doi       && <><dt>DOI</dt><dd><a href={`https://doi.org/${pub.doi}`} target="_blank" rel="noreferrer">{pub.doi}</a></dd></>}
+                            {pub.revue     && <><dt>Revue</dt><dd>{pub.revue}</dd></>}
+                            {pub.domaine   && <><dt>Domaine</dt><dd>{pub.domaine.nom}</dd></>}
+                        </dl>
+
+                        {/* Bouton de téléchargement */}
+                        {pub.fichier && (
+                            <button
+                                className="pub-sidebar-card__dl"
+                                onClick={handleDownload}
+                                disabled={downloading}
                             >
-                                <FaUser />
-                                {/* Utiliser le nom si disponible, sinon fallback */}
-                                {chercheurs[index] || `Chercheur #${chercheurId}`}
+                                {downloading ? 'Téléchargement...' : '⬇ Télécharger le PDF'}
+                            </button>
+                        )}
+
+                        {!user && (
+                            <p className="pub-sidebar-card__login-hint">
+                                <Link to="/login">Connectez-vous</Link> pour accéder à plus de fonctionnalités.
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Autres publications du même domaine */}
+                    {pub.domaine && (
+                        <div className="pub-sidebar-card">
+                            <h3>Même domaine</h3>
+                            <Link to={`/search?domain=${pub.domaine.id}`} className="pub-sidebar-card__link">
+                                Voir toutes les publications en {pub.domaine.nom} →
                             </Link>
-                        ))
-                    ) : (
-                        <p className="empty-info">Aucun auteur renseigné</p>
+                        </div>
                     )}
-                </div>
+                </aside>
             </div>
-
-            <div className="detail-section">
-                <h3><FaTag /> Domaines</h3>
-                <div className="domains-list">
-                    {domainesNoms.length > 0 ? (
-                        domainesNoms.map((nom, index) => (
-                            <span key={index} className="domain-badge">
-                                <FaTag /> {nom}
-                            </span>
-                        ))
-                    ) : (
-                        <p className="empty-info">Aucun domaine renseigné</p>
-                    )}
-                </div>
-            </div>
-
-            {publication.cheminFichier && (
-                <div className="download-section">
-                    <button onClick={handleDownload} className="btn-primary btn-download">
-                        <FaFilePdf /> Télécharger le PDF
-                    </button>
-                </div>
-            )}
-        </motion.div>
+        </div>
     );
 };
 

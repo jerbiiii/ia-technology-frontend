@@ -1,49 +1,36 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useContext, useState } from 'react';
 import AuthService from '../services/auth.service';
 
-export const AuthContext = createContext();
-
-// ✅ Hook useAuth manquant - utilisé dans Dashboard, Profile, ModeratorPanel...
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) throw new Error('useAuth must be used within an AuthProvider');
-    return context;
-};
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const currentUser = AuthService.getCurrentUser();
-        if (currentUser) {
-            setUser(currentUser);
-            setIsAuthenticated(true);
-        }
-        setLoading(false);
-    }, []);
+    const [user, setUser] = useState(() => AuthService.getCurrentUser());
 
     const login = async (email, password) => {
         const data = await AuthService.login(email, password);
-        setUser(data);
-        setIsAuthenticated(true);
+        setUser(AuthService.getCurrentUser());
         return data;
     };
 
     const logout = () => {
         AuthService.logout();
         setUser(null);
-        setIsAuthenticated(false);
     };
 
-    const register = async (nom, prenom, email, password) => {
-        return AuthService.register(nom, prenom, email, password);
-    };
+    const register = (nom, prenom, email, password) =>
+        AuthService.register(nom, prenom, email, password);
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, logout, register }}>
+        <AuthContext.Provider value={{ user, login, logout, register }}>
             {children}
         </AuthContext.Provider>
     );
 };
+
+export const useAuth = () => {
+    const ctx = useContext(AuthContext);
+    if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+    return ctx;
+};
+
+export default AuthContext;

@@ -8,7 +8,9 @@ class AuthService {
             .post(API_URL + 'signin', { email, password })
             .then(response => {
                 if (response.data.token) {
+                    // ✅ Stocker l'objet user ET le token séparément
                     localStorage.setItem('user', JSON.stringify(response.data));
+                    localStorage.setItem('token', response.data.token);
                 }
                 return response.data;
             });
@@ -16,6 +18,7 @@ class AuthService {
 
     logout() {
         localStorage.removeItem('user');
+        localStorage.removeItem('token'); // ✅ Nettoyer le token aussi
     }
 
     register(nom, prenom, email, password) {

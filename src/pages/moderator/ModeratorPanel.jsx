@@ -1,74 +1,170 @@
-import { Routes, Route, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { motion } from 'framer-motion';
-import { FaNewspaper, FaStar, FaHome } from 'react-icons/fa';
-import HighlightManagement from './HighlightManagement';
-import ActualiteManagement from './ActualiteManagement';
-import HomeContentManagement from './HomeContentManagement';
+import { useState, useEffect } from 'react';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 import './ModeratorPanel.css';
 
-const modules = [
-    {
-        path: 'actualites',
-        name: 'Actualités',
-        icon: <FaNewspaper />,
-        description: 'Publier et gérer les actualités et annonces',
-        color: '#17a2b8'
-    },
-    {
-        path: 'highlights',
-        name: 'Projets à la une',
-        icon: <FaStar />,
-        description: 'Gérer les projets mis en avant sur la page d\'accueil',
-        color: '#ffc107'
-    },
-    {
-        path: 'accueil',
-        name: 'Contenu de l\'accueil',
-        icon: <FaHome />,
-        description: 'Modifier les textes et sections de la page d\'accueil',
-        color: '#28a745'
-    }
-];
+/* ══════════════════════════════════════════════
+   Espace Modérateur
+   - Gestion du contenu de la page d'accueil
+   - Publication d'actualités et d'annonces
+   - Mise en avant des projets récents
+   ══════════════════════════════════════════════ */
 
-const ModeratorPanel = () => {
-    const { user } = useAuth();
+/* ─── Liste des annonces ─── */
+const AnnouncementList = () => {
+    const [items, setItems]   = useState([]);
+    const [loading, setLoad]  = useState(true);
+    const navigate            = useNavigate();
+
+    const load = () => {
+        setLoad(true);
+        api.get('/announcements')
+            .then(r => setItems(r.data))
+            .finally(() => setLoad(false));
+    };
+    useEffect(load, []);
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Supprimer cette annonce ?')) return;
+        await api.delete(`/announcements/${id}`);
+        load();
+    };
 
     return (
-        <div className="moderator-panel container">
-            <h1>Espace Modérateur</h1>
-            <p>Bienvenue, {user?.prenom} {user?.nom} !</p>
+        <div className="mod-section">
+            <div className="mod-section__head">
+                <h2>Actualités & Annonces</h2>
+                <button className="btn-add" onClick={() => navigate('new')}>
+                    + Nouvelle annonce
+                </button>
+            </div>
 
-            <Routes>
-                <Route path="/" element={
-                    <div className="modules-grid">
-                        {modules.map((module, i) => (
-                            <Link to={module.path} key={module.path} className="module-card-link">
-                                <motion.div
-                                    className="module-card"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.08 }}
-                                    whileHover={{ y: -5, boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}
-                                    style={{ borderTop: `4px solid ${module.color}` }}
-                                >
-                                    <div className="module-icon" style={{ color: module.color }}>
-                                        {module.icon}
-                                    </div>
-                                    <h3>{module.name}</h3>
-                                    <p>{module.description}</p>
-                                </motion.div>
-                            </Link>
-                        ))}
-                    </div>
-                } />
-
-                <Route path="highlights/*" element={<HighlightManagement />} />
-                <Route path="actualites/*" element={<ActualiteManagement />} />
-                <Route path="accueil/*"    element={<HomeContentManagement />} />
-            </Routes>
+            {loading ? <p>Chargement...</p> : (
+                <div className="mod-list">
+                    {items.length === 0 && <p className="mod-empty">Aucune annonce pour le moment.</p>}
+                    {items.map(a => (
+                        <div key={a.id} className="mod-item">
+                            <div className="mod-item__info">
+                                <span className="mod-item__date">
+                                    {new Date(a.datePublication).toLocaleDateString('fr-FR')}
+                                </span>
+                                <h3 className="mod-item__title">{a.titre}</h3>
+                                <p className="mod-item__body">{a.contenu}</p>
+                            </div>
+                            <div className="mod-item__actions">
+                                <button className="btn-edit" onClick={() => navigate(`edit/${a.id}`)}>✏️ Modifier</button>
+                                <button className="btn-del"  onClick={() => handleDelete(a.id)}>🗑 Supprimer</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
 
-export default ModeratorPanel;
+/* ─── Formulaire annonce (création / édition) ─── */
+const AnnouncementForm = ({ editId }) => {
+    const navigate = useNavigate();
+    const [form, setForm] = useState({ titre: '', contenu: '', pinned: false });
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (editId) {
+            api.get(`/announcements/${editId}`).then(r => setForm(r.data));
+        }
+    }, [editId]);
+
+    const handleChange = e => {
+        const { name, value, type, checked } = e.target;
+        setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            if (editId) {
+                await api.put(`/announcements/${editId}`, form);
+            } else {
+                await api.post('/announcements', form);
+            }
+            navigate('/moderateur');
+        } catch {
+            alert('Erreur lors de la sauvegarde.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="mod-section">
+            <div className="mod-section__head">
+                <h2>{editId ? 'Modifier l\'annonce' : 'Nouvelle annonce'}</h2>
+                <button className="btn-back" onClick={() => navigate('/moderateur')}>← Retour</button>
+            </div>
+            <form className="mod-form" onSubmit={handleSubmit}>
+                <label>Titre <span className="required">*</span>
+                    <input
+                        name="titre" required
+                        value={form.titre}
+                        onChange={handleChange}
+                        placeholder="Titre de l'annonce"
+                    />
+                </label>
+                <label>Contenu <span className="required">*</span>
+                    <textarea
+                        name="contenu" required rows={6}
+                        value={form.contenu}
+                        onChange={handleChange}
+                        placeholder="Contenu de l'annonce..."
+                    />
+                </label>
+                <label className="mod-form__checkbox">
+                    <input
+                        type="checkbox"
+                        name="pinned"
+                        checked={form.pinned ?? false}
+                        onChange={handleChange}
+                    />
+                    Épingler sur la page d'accueil
+                </label>
+                <div className="mod-form__actions">
+                    <button type="button" className="btn-cancel" onClick={() => navigate('/moderateur')}>
+                        Annuler
+                    </button>
+                    <button type="submit" className="btn-save" disabled={saving}>
+                        {saving ? 'Sauvegarde...' : '💾 Enregistrer'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+/* ══ Panel Modérateur principal ══ */
+const ModerateurPanel = () => (
+    <div className="mod-panel container">
+        <div className="mod-panel__header">
+            <h1>Espace Modérateur</h1>
+            <nav className="mod-panel__nav">
+                <Link to="/moderateur">📋 Annonces</Link>
+                <Link to="/">🏠 Voir le site</Link>
+            </nav>
+        </div>
+        <Routes>
+            <Route index      element={<AnnouncementList />} />
+            <Route path="new" element={<AnnouncementForm />} />
+            <Route path="edit/:id" element={<AnnouncementFormWrapper />} />
+        </Routes>
+    </div>
+);
+
+// Wrapper pour récupérer l'id depuis les params
+import { useParams } from 'react-router-dom';
+const AnnouncementFormWrapper = () => {
+    const { id } = useParams();
+    return <AnnouncementForm editId={id} />;
+};
+
+export default ModerateurPanel;
