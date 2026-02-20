@@ -1,10 +1,15 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import AuthService from '../services/auth.service';
 
-// Export nommé du contexte
 export const AuthContext = createContext();
 
-// Fournisseur du contexte
+// ✅ Hook useAuth manquant - utilisé dans Dashboard, Profile, ModeratorPanel...
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) throw new Error('useAuth must be used within an AuthProvider');
+    return context;
+};
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
