@@ -1,0 +1,126 @@
+.researcher-detail {
+    padding: 2rem;
+    max-width: 900px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.profile-header {
+    margin-bottom: 2rem;
+}
+
+.profile-header h1 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.affiliation {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 0.3rem;
+}
+
+.email {
+    color: #777;
+}
+
+.domains-section {
+    margin-bottom: 2rem;
+}
+
+.domains-section h2 {
+    color: var(--primary);
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 0.5rem;
+}
+
+.domain-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.domain-tag {
+    background: var(--light-bg);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.domain-tag.principal {
+    background: var(--primary);
+    color: white;
+}
+
+.domain-tag.secondary {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.publications-section h2 {
+    color: var(--primary);
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 0.5rem;
+}
+
+.publications-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.publication-card {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    transition: var(--transition);
+}
+
+.publication-card:hover {
+    box-shadow: var(--box-shadow);
+}
+
+.publication-card h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.publication-card h3 a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.publication-card h3 a:hover {
+    text-decoration: underline;
+}
+
+.publication-date {
+    color: #999;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.publication-abstract {
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.loader, .error {
+    text-align: center;
+    padding: 3rem;
+    color: var(--primary);
+    font-size: 1.2rem;
+}

@@ -1,0 +1,23 @@
+.publications-page {
+    padding: 2rem 0;
+    min-height: calc(100vh - 70px - 100px);
+}
+
+.publications-page h1 {
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.publications-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.no-results {
+    text-align: center;
+    color: #777;
+    font-size: 1.2rem;
+    margin-top: 3rem;
+}

@@ -1,0 +1,63 @@
+.publication-detail {
+    padding: 2rem 0;
+    max-width: 800px;
+}
+
+.publication-detail h1 {
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.detail-meta {
+    display: flex;
+    gap: 2rem;
+    color: #777;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.detail-section {
+    margin-bottom: 2rem;
+}
+
+.detail-section h3 {
+    color: var(--secondary);
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 0.3rem;
+    display: inline-block;
+}
+
+.authors-list, .domains-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.author-badge, .domain-badge {
+    background-color: var(--light-bg);
+    padding: 0.5rem 1rem;
+    border-radius: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.author-badge:hover {
+    background-color: var(--primary);
+    color: white;
+}
+
+.download-section {
+    margin-top: 3rem;
+    text-align: center;
+}
+
+.error-page {
+    text-align: center;
+    padding: 3rem;
+    color: var(--accent);
+}
