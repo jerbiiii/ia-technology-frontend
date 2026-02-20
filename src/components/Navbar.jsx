@@ -1,167 +1,231 @@
-import React, { useContext, useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Navbar.css';
 
-const NavigationBar = () => {
+const Navbar = () => {
     const { user, isAuthenticated, logout } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
     const [scrolled, setScrolled] = useState(false);
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [dropdownOpen, setDropdownOpen] = useState(null);
+    const [openDrop, setOpenDrop] = useState(null); // 'admin' | 'mod' | 'user' | null
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const navRef = useRef(null);
 
+    // Scroll effect
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 20);
-        window.addEventListener('scroll', onScroll);
+        window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    useEffect(() => { setMenuOpen(false); setDropdownOpen(null); }, [location.pathname]);
+    // Close dropdowns on route change
+    useEffect(() => {
+        setOpenDrop(null);
+        setMobileOpen(false);
+    }, [location.pathname]);
 
+    // Click outside to close
+    useEffect(() => {
+        const handler = (e) => {
+            if (navRef.current && !navRef.current.contains(e.target)) {
+                setOpenDrop(null);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const toggleDrop = (name) => setOpenDrop(prev => prev === name ? null : name);
+    const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
     const handleLogout = () => { logout(); navigate('/'); };
 
-    const isActive = (path) => location.pathname.startsWith(path);
+    const initials = user ? `${user.prenom?.[0] || ''}${user.nom?.[0] || ''}`.toUpperCase() : '';
 
     return (
-        <nav className={`site-nav ${scrolled ? 'scrolled' : ''}`}>
-            <div className="nav-inner container">
+        <header className={`nav ${scrolled ? 'nav--scrolled' : ''}`} ref={navRef}>
+            <div className="nav__inner container">
 
-                {/* LOGO */}
-                <Link to="/" className="nav-logo">
-                    <span className="nav-logo-icon">⬡</span>
-                    <span className="nav-logo-text">IA<span className="nav-logo-accent">-Tech</span></span>
+                {/* ── LOGO ── */}
+                <Link to="/" className="nav__logo">
+                    <div className="nav__logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <polygon points="12 2 22 8 22 16 12 22 2 16 2 8"/>
+                            <line x1="12" y1="2" x2="12" y2="22"/>
+                            <line x1="2" y1="8" x2="22" y2="8"/>
+                            <line x1="2" y1="16" x2="22" y2="16"/>
+                        </svg>
+                    </div>
+                    <div className="nav__logo-text">
+                        <span className="nav__logo-name">IA<em>-Tech</em></span>
+                        <span className="nav__logo-sub">Plateforme scientifique</span>
+                    </div>
                 </Link>
 
-                {/* DESKTOP LINKS */}
-                <div className="nav-links">
-                    <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Accueil</Link>
-                    <Link to="/publications" className={`nav-link ${isActive('/publications') ? 'active' : ''}`}>Publications</Link>
-                    <Link to="/researchers" className={`nav-link ${isActive('/researchers') ? 'active' : ''}`}>Chercheurs</Link>
+                {/* ── DESKTOP LINKS ── */}
+                <nav className="nav__links">
+                    <Link to="/" className={`nav__link ${isActive('/') && location.pathname === '/' ? 'nav__link--active' : ''}`}>
+                        Accueil
+                    </Link>
+                    <Link to="/publications" className={`nav__link ${isActive('/publications') ? 'nav__link--active' : ''}`}>
+                        Publications
+                    </Link>
+                    <Link to="/researchers" className={`nav__link ${isActive('/researchers') ? 'nav__link--active' : ''}`}>
+                        Chercheurs
+                    </Link>
 
+                    {/* Modérateur dropdown */}
                     {isAuthenticated && (user?.role === 'MODERATEUR' || user?.role === 'ADMIN') && (
-                        <div className="nav-dropdown-wrap">
+                        <div className="nav__drop-wrap">
                             <button
-                                className={`nav-link nav-dropdown-trigger ${isActive('/moderator') ? 'active' : ''}`}
-                                onClick={() => setDropdownOpen(dropdownOpen === 'mod' ? null : 'mod')}
+                                className={`nav__link nav__link--btn ${isActive('/moderator') ? 'nav__link--active' : ''}`}
+                                onClick={() => toggleDrop('mod')}
                             >
-                                Modération <span className="dropdown-arrow">▾</span>
+                                Modération
+                                <svg className={`nav__chevron ${openDrop === 'mod' ? 'nav__chevron--open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
-                            {dropdownOpen === 'mod' && (
-                                <div className="nav-dropdown">
-                                    <Link to="/moderator" className="nav-dropdown-item">🏠 Tableau de bord</Link>
-                                    <Link to="/moderator/actualites" className="nav-dropdown-item">📰 Actualités</Link>
-                                    <Link to="/moderator/highlights" className="nav-dropdown-item">⭐ Highlights</Link>
+                            {openDrop === 'mod' && (
+                                <div className="nav__dropdown nav__dropdown--center">
+                                    <div className="nav__drop-section">Modération</div>
+                                    <DropItem to="/moderator/actualites" icon="📰" label="Actualités" sub="Publier des annonces" />
+                                    <DropItem to="/moderator/highlights" icon="⭐" label="Highlights" sub="Projets mis en avant" />
+                                    <DropItem to="/moderator/accueil"    icon="🏗️" label="Contenu accueil" sub="Textes de la homepage" />
                                 </div>
                             )}
                         </div>
                     )}
 
+                    {/* Admin dropdown */}
                     {isAuthenticated && user?.role === 'ADMIN' && (
-                        <div className="nav-dropdown-wrap">
+                        <div className="nav__drop-wrap">
                             <button
-                                className={`nav-link nav-dropdown-trigger ${isActive('/admin') ? 'active' : ''}`}
-                                onClick={() => setDropdownOpen(dropdownOpen === 'admin' ? null : 'admin')}
+                                className={`nav__link nav__link--btn ${isActive('/admin') ? 'nav__link--active' : ''}`}
+                                onClick={() => toggleDrop('admin')}
                             >
-                                Admin <span className="dropdown-arrow">▾</span>
+                                Admin
+                                <svg className={`nav__chevron ${openDrop === 'admin' ? 'nav__chevron--open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
-                            {dropdownOpen === 'admin' && (
-                                <div className="nav-dropdown">
-                                    <Link to="/admin" className="nav-dropdown-item">🏠 Dashboard</Link>
-                                    <Link to="/admin/researchers" className="nav-dropdown-item">👥 Chercheurs</Link>
-                                    <Link to="/admin/publications" className="nav-dropdown-item">📄 Publications</Link>
-                                    <Link to="/admin/domains" className="nav-dropdown-item">🏷️ Domaines</Link>
-                                    <Link to="/admin/users" className="nav-dropdown-item">👤 Utilisateurs</Link>
+                            {openDrop === 'admin' && (
+                                <div className="nav__dropdown nav__dropdown--center">
+                                    <div className="nav__drop-section">Gestion</div>
+                                    <DropItem to="/admin/researchers"  icon="👥" label="Chercheurs"  sub="Gérer les profils" />
+                                    <DropItem to="/admin/publications" icon="📄" label="Publications" sub="Gérer les articles" />
+                                    <DropItem to="/admin/domains"      icon="🏷️" label="Domaines"    sub="Hiérarchie des domaines" />
+                                    <DropItem to="/admin/users"        icon="👤" label="Utilisateurs" sub="Comptes et rôles" />
+                                    <div className="nav__drop-divider"/>
+                                    <div className="nav__drop-section">Supervision</div>
+                                    <DropItem to="/admin/audit"        icon="📋" label="Journal des actions" sub="Historique complet" />
                                 </div>
                             )}
                         </div>
                     )}
-                </div>
+                </nav>
 
-                {/* AUTH SECTION */}
-                <div className="nav-auth">
+                {/* ── AUTH ── */}
+                <div className="nav__auth">
                     {isAuthenticated ? (
-                        <div className="nav-dropdown-wrap">
-                            <button
-                                className="nav-user-btn"
-                                onClick={() => setDropdownOpen(dropdownOpen === 'user' ? null : 'user')}
-                            >
-                                <span className="nav-user-avatar">
-                                    {user?.prenom?.[0]}{user?.nom?.[0]}
-                                </span>
-                                <span className="nav-user-info">
-                                    <span className="nav-user-name">{user?.prenom}</span>
-                                    <span className="nav-user-role">{user?.role}</span>
-                                </span>
-                                <span className="dropdown-arrow">▾</span>
+                        <div className="nav__drop-wrap">
+                            <button className="nav__user" onClick={() => toggleDrop('user')}>
+                                <div className="nav__avatar">{initials}</div>
+                                <div className="nav__user-info">
+                                    <span className="nav__user-name">{user?.prenom} {user?.nom}</span>
+                                    <span className="nav__user-role">{user?.role}</span>
+                                </div>
+                                <svg className={`nav__chevron ${openDrop === 'user' ? 'nav__chevron--open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
-                            {dropdownOpen === 'user' && (
-                                <div className="nav-dropdown nav-dropdown-right">
-                                    <Link to="/dashboard" className="nav-dropdown-item">📊 Mon tableau de bord</Link>
-                                    <Link to="/profile" className="nav-dropdown-item">⚙️ Mon profil</Link>
-                                    <div className="nav-dropdown-divider" />
-                                    <button onClick={handleLogout} className="nav-dropdown-item nav-dropdown-danger">
-                                        ⏻ Déconnexion
+                            {openDrop === 'user' && (
+                                <div className="nav__dropdown nav__dropdown--right">
+                                    <DropItem to="/dashboard" icon="📊" label="Mon tableau de bord" sub="Vue d'ensemble" />
+                                    <DropItem to="/profile"   icon="⚙️" label="Mon profil" sub="Modifier mes infos" />
+                                    <div className="nav__drop-divider"/>
+                                    <button className="nav__drop-item nav__drop-item--danger" onClick={handleLogout}>
+                                        <span className="nav__drop-icon">⏻</span>
+                                        <div>
+                                            <div className="nav__drop-label">Déconnexion</div>
+                                        </div>
                                     </button>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        <div className="nav-auth-btns">
-                            <Link to="/login" className="btn-ghost">Connexion</Link>
-                            <Link to="/register" className="btn-primary btn-sm">S'inscrire</Link>
+                        <div className="nav__auth-btns">
+                            <Link to="/login" className="nav__login">Connexion</Link>
+                            <Link to="/register" className="nav__register">
+                                S'inscrire
+                                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </Link>
                         </div>
                     )}
                 </div>
 
-                {/* HAMBURGER */}
+                {/* ── HAMBURGER ── */}
                 <button
-                    className={`nav-hamburger ${menuOpen ? 'open' : ''}`}
-                    onClick={() => setMenuOpen(!menuOpen)}
+                    className={`nav__burger ${mobileOpen ? 'nav__burger--open' : ''}`}
+                    onClick={() => setMobileOpen(!mobileOpen)}
                     aria-label="Menu"
                 >
-                    <span /><span /><span />
+                    <span/><span/><span/>
                 </button>
             </div>
 
-            {/* MOBILE MENU */}
-            {menuOpen && (
-                <div className="nav-mobile">
-                    <Link to="/" className="nav-mobile-link">Accueil</Link>
-                    <Link to="/publications" className="nav-mobile-link">Publications</Link>
-                    <Link to="/researchers" className="nav-mobile-link">Chercheurs</Link>
+            {/* ── MOBILE MENU ── */}
+            {mobileOpen && (
+                <div className="nav__mobile">
+                    <MobileLink to="/" label="Accueil"/>
+                    <MobileLink to="/publications" label="Publications"/>
+                    <MobileLink to="/researchers" label="Chercheurs"/>
                     {isAuthenticated && (user?.role === 'MODERATEUR' || user?.role === 'ADMIN') && (
                         <>
-                            <div className="nav-mobile-section">MODÉRATION</div>
-                            <Link to="/moderator/actualites" className="nav-mobile-link nav-mobile-sub">Actualités</Link>
-                            <Link to="/moderator/highlights" className="nav-mobile-link nav-mobile-sub">Highlights</Link>
+                            <div className="nav__mobile-section">Modération</div>
+                            <MobileLink to="/moderator/actualites" label="Actualités" sub/>
+                            <MobileLink to="/moderator/highlights" label="Highlights" sub/>
+                            <MobileLink to="/moderator/accueil"    label="Contenu accueil" sub/>
                         </>
                     )}
                     {isAuthenticated && user?.role === 'ADMIN' && (
                         <>
-                            <div className="nav-mobile-section">ADMIN</div>
-                            <Link to="/admin/researchers" className="nav-mobile-link nav-mobile-sub">Chercheurs</Link>
-                            <Link to="/admin/publications" className="nav-mobile-link nav-mobile-sub">Publications</Link>
-                            <Link to="/admin/users" className="nav-mobile-link nav-mobile-sub">Utilisateurs</Link>
+                            <div className="nav__mobile-section">Administration</div>
+                            <MobileLink to="/admin/researchers"  label="Chercheurs" sub/>
+                            <MobileLink to="/admin/publications" label="Publications" sub/>
+                            <MobileLink to="/admin/domains"      label="Domaines" sub/>
+                            <MobileLink to="/admin/users"        label="Utilisateurs" sub/>
+                            <MobileLink to="/admin/audit"        label="Journal des actions" sub/>
                         </>
                     )}
-                    <div className="nav-mobile-divider" />
+                    <div className="nav__mobile-divider"/>
                     {isAuthenticated ? (
                         <>
-                            <Link to="/dashboard" className="nav-mobile-link">Mon dashboard</Link>
-                            <Link to="/profile" className="nav-mobile-link">Mon profil</Link>
-                            <button onClick={handleLogout} className="nav-mobile-link nav-mobile-danger">Déconnexion</button>
+                            <MobileLink to="/dashboard" label="Mon tableau de bord"/>
+                            <MobileLink to="/profile"   label="Mon profil"/>
+                            <button className="nav__mobile-link nav__mobile-link--danger" onClick={handleLogout}>Déconnexion</button>
                         </>
                     ) : (
                         <>
-                            <Link to="/login" className="nav-mobile-link">Connexion</Link>
-                            <Link to="/register" className="nav-mobile-link">S'inscrire</Link>
+                            <MobileLink to="/login"    label="Connexion"/>
+                            <MobileLink to="/register" label="S'inscrire"/>
                         </>
                     )}
                 </div>
             )}
-        </nav>
+        </header>
     );
 };
 
-export default NavigationBar;
+/* ── Sub-components ── */
+const DropItem = ({ to, icon, label, sub }) => (
+    <Link to={to} className="nav__drop-item">
+        <span className="nav__drop-icon">{icon}</span>
+        <div>
+            <div className="nav__drop-label">{label}</div>
+            {sub && <div className="nav__drop-sub">{sub}</div>}
+        </div>
+    </Link>
+);
+
+const MobileLink = ({ to, label, sub }) => (
+    <Link to={to} className={`nav__mobile-link ${sub ? 'nav__mobile-link--sub' : ''}`}>
+        {label}
+    </Link>
+);
+
+export default Navbar;
