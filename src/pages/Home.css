@@ -789,6 +789,71 @@
     text-decoration: none;
 }
 
+/* ── PUB CARD INNER LINK ── */
+.pub-card__inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* ── EMPTY STATES ── */
+.visual-empty {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--slate-400);
+    font-size: 0.85rem;
+}
+
+.visual-empty span { font-size: 1.8rem; display: block; margin-bottom: 8px; opacity: 0.5; }
+
+.pubs-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: rgba(255,255,255,0.4);
+}
+
+.pubs-empty span { font-size: 3rem; display: block; margin-bottom: 1rem; opacity: 0.3; }
+.pubs-empty p { font-size: 0.95rem; }
+
+/* ── SKELETON LOADERS ── */
+.skel {
+    background: linear-gradient(90deg,
+    rgba(0,0,0,0.06) 25%,
+    rgba(0,0,0,0.10) 37%,
+    rgba(0,0,0,0.06) 63%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+    border-radius: 6px;
+}
+
+@keyframes shimmer {
+    0%   { background-position: 100% 50%; }
+    100% { background-position:   0% 50%; }
+}
+
+.skel--icon    { width: 36px; height: 36px; border-radius: var(--r-sm); flex-shrink: 0; }
+.skel--line    { height: 12px; border-radius: 4px; margin-bottom: 6px; }
+.skel--title   { width: 90%; height: 13px; }
+.skel--meta    { width: 60%; height: 10px; }
+.skel--stat    { display: inline-block; width: 40px; height: 28px; border-radius: 6px; }
+.skel--tag     { width: 100px; height: 22px; border-radius: var(--r-full); margin-bottom: 14px; }
+.skel--excerpt { height: 11px; margin-bottom: 6px; }
+
+/* Skeleton dark (pub section) */
+.pub-card--skeleton .skel {
+    background: linear-gradient(90deg,
+    rgba(255,255,255,0.05) 25%,
+    rgba(255,255,255,0.10) 37%,
+    rgba(255,255,255,0.05) 63%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 1024px) {
     .feat-grid { grid-template-columns: repeat(2, 1fr); }
