@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, useNavigate, useLocation, useParams } from 'react-router-dom';
 import api from '../../services/api';
+import HighlightManagement from './HighlightManagement';
+import HomeContentManagement from './HomeContentManagement';
 import './ModeratorPanel.css';
 
 /* ─── Liste des actualités ─── */
@@ -11,7 +13,6 @@ const ActualiteList = () => {
 
     const load = () => {
         setLoad(true);
-        // ✅ FIX: était '/announcements' (inexistant) → '/actualites' (endpoint réel du backend)
         api.get('/actualites')
             .then(r => setItems(r.data))
             .catch(() => setItems([]))
@@ -22,7 +23,6 @@ const ActualiteList = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Supprimer cette actualité ?')) return;
         try {
-            // ✅ FIX: était '/announcements/${id}' → '/actualites/${id}'
             await api.delete(`/actualites/${id}`);
             load();
         } catch (err) {
@@ -34,7 +34,7 @@ const ActualiteList = () => {
         <div className="mod-section">
             <div className="mod-section__head">
                 <h2>Actualités & Annonces</h2>
-                <button className="btn-add" onClick={() => navigate('new')}>
+                <button className="btn-add" onClick={() => navigate('actualites/new')}>
                     + Nouvelle actualité
                 </button>
             </div>
@@ -54,11 +54,9 @@ const ActualiteList = () => {
                                 <p className="mod-item__body">{a.contenu}</p>
                             </div>
                             <div className="mod-item__actions">
-                                {/* ✅ FIX: on passe l'objet complet via location.state
-                                    car le backend n'a pas de GET /actualites/{id}        */}
                                 <button
                                     className="btn-edit"
-                                    onClick={() => navigate(`edit/${a.id}`, { state: { item: a } })}
+                                    onClick={() => navigate(`actualites/edit/${a.id}`, { state: { item: a } })}
                                 >
                                     ✏️ Modifier
                                 </button>
@@ -104,10 +102,8 @@ const ActualiteForm = ({ editItem }) => {
             };
 
             if (editItem) {
-                // ✅ FIX: était '/announcements/${editId}' → '/actualites/${editItem.id}'
                 await api.put(`/actualites/${editItem.id}`, payload);
             } else {
-                // ✅ FIX: était '/announcements' → '/actualites'
                 await api.post('/actualites', payload);
             }
             navigate('/moderateur');
@@ -177,17 +173,12 @@ const ActualiteForm = ({ editItem }) => {
     );
 };
 
-/* ✅ FIX: Le wrapper d'édition récupère l'item depuis location.state
-   (passé lors du navigate) plutôt que d'appeler GET /actualites/{id}
-   qui n'existe pas dans le backend.                                    */
+/* ─── Wrapper édition actualité ─── */
 const ActualiteFormEditWrapper = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { id }   = useParams();
-
     const editItem = location.state?.item ?? null;
 
-    // Si on arrive sans l'objet (ex: accès direct par URL), on redirige vers la liste
     if (!editItem) {
         navigate('/moderateur', { replace: true });
         return null;
@@ -202,14 +193,39 @@ const ModerateurPanel = () => (
         <div className="mod-panel__header">
             <h1>Espace Modérateur</h1>
             <nav className="mod-panel__nav">
-                <Link to="/moderateur">📋 Actualités</Link>
+                {/* ✅ FIX: Liens vers les 3 sections du panel */}
+                <NavLink
+                    to="/moderateur"
+                    end
+                    style={({ isActive }) => ({ fontWeight: isActive ? '800' : '600' })}
+                >
+                    📋 Actualités
+                </NavLink>
+                <NavLink
+                    to="/moderateur/highlights"
+                    style={({ isActive }) => ({ fontWeight: isActive ? '800' : '600' })}
+                >
+                    ⭐ Projets à la une
+                </NavLink>
+                <NavLink
+                    to="/moderateur/home-content"
+                    style={({ isActive }) => ({ fontWeight: isActive ? '800' : '600' })}
+                >
+                    🏗️ Contenu accueil
+                </NavLink>
                 <Link to="/">🏠 Voir le site</Link>
             </nav>
         </div>
+
         <Routes>
-            <Route index            element={<ActualiteList />} />
-            <Route path="new"       element={<ActualiteForm />} />
-            <Route path="edit/:id"  element={<ActualiteFormEditWrapper />} />
+            {/* ── Actualités ── */}
+            <Route index                       element={<ActualiteList />} />
+            <Route path="actualites/new"       element={<ActualiteForm />} />
+            <Route path="actualites/edit/:id"  element={<ActualiteFormEditWrapper />} />
+
+            {/* ✅ FIX: Nouvelles routes pour Highlights et HomeContent */}
+            <Route path="highlights"           element={<HighlightManagement />} />
+            <Route path="home-content"         element={<HomeContentManagement />} />
         </Routes>
     </div>
 );
