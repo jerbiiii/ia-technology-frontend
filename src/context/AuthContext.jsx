@@ -13,21 +13,20 @@ export const AuthProvider = ({ children }) => {
         }
     });
 
-    const isAdmin = user?.role === 'ADMIN';
-    const isModerator = user?.role === 'MODERATEUR' || user?.role === 'ADMIN';
+    const isAdmin      = user?.role === 'ADMIN';
+    const isModerator  = user?.role === 'MODERATEUR' || user?.role === 'ADMIN';
     const isAuthenticated = !!user;
 
     const login = async (email, password) => {
         const response = await api.post('/auth/signin', { email, password });
         const userData = response.data;
-        // ✅ FIX: stocker le token séparément pour l'intercepteur api.js
+        // ✅ Stocker le token séparément pour l'intercepteur api.js
         localStorage.setItem('token', userData.token);
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         return userData;
     };
 
-    // ✅ FIX: fonction register manquante (Register.jsx l'utilise)
     const register = async (nom, prenom, email, password) => {
         const response = await api.post('/auth/signup', { nom, prenom, email, password });
         return response.data;
@@ -39,6 +38,20 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    // ✅ FIX: Écouter l'événement 'auth:logout' déclenché par l'intercepteur api.js
+    // quand un token expire (401). Cela évite que l'intercepteur fasse un
+    // window.location.href qui détruirait l'état React et causerait des boucles.
+    useEffect(() => {
+        const handleForceLogout = () => {
+            setUser(null);
+            // Redirection douce via React (pas window.location.href)
+            window.location.replace('/login');
+        };
+        window.addEventListener('auth:logout', handleForceLogout);
+        return () => window.removeEventListener('auth:logout', handleForceLogout);
+    }, []);
+
+    // Sync entre onglets
     useEffect(() => {
         const handleStorage = (e) => {
             if (e.key === 'user') {
@@ -69,6 +82,5 @@ export const useAuth = () => {
     return ctx;
 };
 
-// ✅ FIX: export named pour Register.jsx et Login.jsx qui utilisent useContext(AuthContext)
 export { AuthContext };
 export default AuthContext;

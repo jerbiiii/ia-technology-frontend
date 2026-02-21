@@ -40,7 +40,7 @@ function App() {
                         <Route path="/login"               element={<Login />} />
                         <Route path="/register"            element={<Register />} />
 
-                        {/* ══ Routes authentifiées (tout rôle) ══ */}
+
                         <Route path="/profile" element={
                             <PrivateRoute>
                                 <Profile />
@@ -54,10 +54,7 @@ function App() {
                             </PrivateRoute>
                         } />
 
-                        {/* ══ Dashboard Modérateur (MODERATEUR ou ADMIN) ══
-                            ✅ FIX : on accepte les deux rôles ici
-                            user.role est une string "MODERATEUR" ou "ADMIN"
-                        ══ */}
+                        {/* ══ Dashboard Modérateur (MODERATEUR ou ADMIN) ══ */}
                         <Route path="/moderateur/*" element={
                             <PrivateRoute roles={['MODERATEUR', 'ADMIN']}>
                                 <ModerateurPanel />

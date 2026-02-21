@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
-// ✅ FIX: useParams importé ici en haut, pas en bas du fichier (causait une erreur fatale)
+import { Routes, Route, Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import api from '../../services/api';
 import './ModeratorPanel.css';
 
-/* ─── Liste des annonces ─── */
-const AnnouncementList = () => {
+/* ─── Liste des actualités ─── */
+const ActualiteList = () => {
     const [items, setItems]  = useState([]);
     const [loading, setLoad] = useState(true);
     const navigate           = useNavigate();
 
     const load = () => {
         setLoad(true);
-        api.get('/announcements')
+        // ✅ FIX: était '/announcements' (inexistant) → '/actualites' (endpoint réel du backend)
+        api.get('/actualites')
             .then(r => setItems(r.data))
             .catch(() => setItems([]))
             .finally(() => setLoad(false));
@@ -20,9 +20,14 @@ const AnnouncementList = () => {
     useEffect(load, []);
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Supprimer cette annonce ?')) return;
-        await api.delete(`/announcements/${id}`);
-        load();
+        if (!window.confirm('Supprimer cette actualité ?')) return;
+        try {
+            // ✅ FIX: était '/announcements/${id}' → '/actualites/${id}'
+            await api.delete(`/actualites/${id}`);
+            load();
+        } catch (err) {
+            alert('Erreur : ' + (err.response?.data?.message || 'Suppression non autorisée'));
+        }
     };
 
     return (
@@ -30,13 +35,15 @@ const AnnouncementList = () => {
             <div className="mod-section__head">
                 <h2>Actualités & Annonces</h2>
                 <button className="btn-add" onClick={() => navigate('new')}>
-                    + Nouvelle annonce
+                    + Nouvelle actualité
                 </button>
             </div>
 
             {loading ? <p>Chargement...</p> : (
                 <div className="mod-list">
-                    {items.length === 0 && <p className="mod-empty">Aucune annonce pour le moment.</p>}
+                    {items.length === 0 && (
+                        <p className="mod-empty">Aucune actualité pour le moment.</p>
+                    )}
                     {items.map(a => (
                         <div key={a.id} className="mod-item">
                             <div className="mod-item__info">
@@ -47,8 +54,17 @@ const AnnouncementList = () => {
                                 <p className="mod-item__body">{a.contenu}</p>
                             </div>
                             <div className="mod-item__actions">
-                                <button className="btn-edit" onClick={() => navigate(`edit/${a.id}`)}>✏️ Modifier</button>
-                                <button className="btn-del"  onClick={() => handleDelete(a.id)}>🗑 Supprimer</button>
+                                {/* ✅ FIX: on passe l'objet complet via location.state
+                                    car le backend n'a pas de GET /actualites/{id}        */}
+                                <button
+                                    className="btn-edit"
+                                    onClick={() => navigate(`edit/${a.id}`, { state: { item: a } })}
+                                >
+                                    ✏️ Modifier
+                                </button>
+                                <button className="btn-del" onClick={() => handleDelete(a.id)}>
+                                    🗑 Supprimer
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -58,17 +74,18 @@ const AnnouncementList = () => {
     );
 };
 
-/* ─── Formulaire annonce ─── */
-const AnnouncementForm = ({ editId }) => {
+/* ─── Formulaire actualité (création & édition) ─── */
+const ActualiteForm = ({ editItem }) => {
     const navigate = useNavigate();
-    const [form, setForm]     = useState({ titre: '', contenu: '', pinned: false });
+    const [form, setForm] = useState({
+        titre:           editItem?.titre   || '',
+        contenu:         editItem?.contenu || '',
+        datePublication: editItem?.datePublication
+            ? new Date(editItem.datePublication).toISOString().slice(0, 16)
+            : new Date().toISOString().slice(0, 16),
+        actif: editItem?.actif ?? true,
+    });
     const [saving, setSaving] = useState(false);
-
-    useEffect(() => {
-        if (editId) {
-            api.get(`/announcements/${editId}`).then(r => setForm(r.data));
-        }
-    }, [editId]);
 
     const handleChange = e => {
         const { name, value, type, checked } = e.target;
@@ -79,14 +96,23 @@ const AnnouncementForm = ({ editId }) => {
         e.preventDefault();
         setSaving(true);
         try {
-            if (editId) {
-                await api.put(`/announcements/${editId}`, form);
+            const payload = {
+                titre:           form.titre,
+                contenu:         form.contenu,
+                datePublication: new Date(form.datePublication).toISOString(),
+                actif:           form.actif,
+            };
+
+            if (editItem) {
+                // ✅ FIX: était '/announcements/${editId}' → '/actualites/${editItem.id}'
+                await api.put(`/actualites/${editItem.id}`, payload);
             } else {
-                await api.post('/announcements', form);
+                // ✅ FIX: était '/announcements' → '/actualites'
+                await api.post('/actualites', payload);
             }
             navigate('/moderateur');
-        } catch {
-            alert('Erreur lors de la sauvegarde.');
+        } catch (err) {
+            alert('Erreur lors de la sauvegarde : ' + (err.response?.data?.message || err.message));
         } finally {
             setSaving(false);
         }
@@ -95,34 +121,48 @@ const AnnouncementForm = ({ editId }) => {
     return (
         <div className="mod-section">
             <div className="mod-section__head">
-                <h2>{editId ? "Modifier l'annonce" : 'Nouvelle annonce'}</h2>
+                <h2>{editItem ? "Modifier l'actualité" : 'Nouvelle actualité'}</h2>
                 <button className="btn-back" onClick={() => navigate('/moderateur')}>← Retour</button>
             </div>
             <form className="mod-form" onSubmit={handleSubmit}>
-                <label>Titre <span className="required">*</span>
+                <label>
+                    Titre <span className="required">*</span>
                     <input
-                        name="titre" required
+                        name="titre"
+                        required
                         value={form.titre}
                         onChange={handleChange}
-                        placeholder="Titre de l'annonce"
+                        placeholder="Titre de l'actualité"
                     />
                 </label>
-                <label>Contenu <span className="required">*</span>
+                <label>
+                    Contenu <span className="required">*</span>
                     <textarea
-                        name="contenu" required rows={6}
+                        name="contenu"
+                        required
+                        rows={6}
                         value={form.contenu}
                         onChange={handleChange}
-                        placeholder="Contenu de l'annonce..."
+                        placeholder="Contenu de l'actualité..."
+                    />
+                </label>
+                <label>
+                    Date de publication
+                    <input
+                        type="datetime-local"
+                        name="datePublication"
+                        value={form.datePublication}
+                        onChange={handleChange}
                     />
                 </label>
                 <label className="mod-form__checkbox">
                     <input
                         type="checkbox"
-                        name="pinned"
-                        checked={form.pinned ?? false}
+                        name="actif"
+                        checked={form.actif}
                         onChange={handleChange}
                     />
-                    Épingler sur la page d'accueil
+                    Actif (affiché sur la page d'accueil)
                 </label>
                 <div className="mod-form__actions">
                     <button type="button" className="btn-cancel" onClick={() => navigate('/moderateur')}>
@@ -137,10 +177,23 @@ const AnnouncementForm = ({ editId }) => {
     );
 };
 
-/* ✅ FIX: Wrapper défini avant le composant principal, useParams importé en haut */
-const AnnouncementFormWrapper = () => {
-    const { id } = useParams();
-    return <AnnouncementForm editId={id} />;
+/* ✅ FIX: Le wrapper d'édition récupère l'item depuis location.state
+   (passé lors du navigate) plutôt que d'appeler GET /actualites/{id}
+   qui n'existe pas dans le backend.                                    */
+const ActualiteFormEditWrapper = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { id }   = useParams();
+
+    const editItem = location.state?.item ?? null;
+
+    // Si on arrive sans l'objet (ex: accès direct par URL), on redirige vers la liste
+    if (!editItem) {
+        navigate('/moderateur', { replace: true });
+        return null;
+    }
+
+    return <ActualiteForm editItem={editItem} />;
 };
 
 /* ══ Panel Modérateur principal ══ */
@@ -149,14 +202,14 @@ const ModerateurPanel = () => (
         <div className="mod-panel__header">
             <h1>Espace Modérateur</h1>
             <nav className="mod-panel__nav">
-                <Link to="/moderateur">📋 Annonces</Link>
+                <Link to="/moderateur">📋 Actualités</Link>
                 <Link to="/">🏠 Voir le site</Link>
             </nav>
         </div>
         <Routes>
-            <Route index         element={<AnnouncementList />} />
-            <Route path="new"    element={<AnnouncementForm />} />
-            <Route path="edit/:id" element={<AnnouncementFormWrapper />} />
+            <Route index            element={<ActualiteList />} />
+            <Route path="new"       element={<ActualiteForm />} />
+            <Route path="edit/:id"  element={<ActualiteFormEditWrapper />} />
         </Routes>
     </div>
 );
