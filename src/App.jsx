@@ -1,85 +1,73 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
-
-// Layout
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
 
-// ═══════════════════════════════════════════
-// PAGES PUBLIQUES (accessibles SANS connexion)
-// ═══════════════════════════════════════════
-import HomePage           from './pages/HomePage';          // accueil libre
-import PublicationsPage   from './pages/Publications';  // liste des publications
-import PublicationDetail  from './pages/PublicationDetail'; // détail + téléchargement
-import ResearchersPage    from './pages/Researchers';   // liste des chercheurs
-import ResearcherDetail   from './pages/ResearcherDetail';  // profil chercheur
-import SearchPage         from './pages/SearchPage';        // recherche multi-critère
+// ── Pages publiques ──
+import HomePage         from './pages/HomePage';
+import Publications     from './pages/Publications';
+import PublicationDetail from './pages/PublicationDetail';
+import Researchers      from './pages/Researchers';
+import ResearcherDetail from './pages/ResearcherDetail';
+import SearchPage       from './pages/SearchPage';
+import Login            from './pages/Login';
+import Register         from './pages/Register';
 
-// Auth
-import LoginPage          from './pages/Login';
-import RegisterPage       from './pages/Register';
-import UnauthorizedPage   from './pages/UnauthorizedPage';
+// ── Pages authentifiées ──
+import Profile          from './pages/Profile';
 
-// ═══════════════════════════════════════════
-// PAGES PRIVÉES
-// ═══════════════════════════════════════════
-import UserProfile        from './pages/Profile';       // profil utilisateur (login requis)
-import AdminPanel         from './pages/AdminPanel';        // panneau admin (ROLE_ADMIN)
-import ModerateurPanel    from './pages/moderator/ModeratorPanel';   // panneau modérateur (ROLE_MODERATEUR)
+// ── Dashboard Admin ──
+import AdminDashboard   from './pages/AdminPanel';
+
+// ── Dashboard Modérateur ──
+import ModerateurPanel  from './pages/moderator/ModeratorPanel';
 
 function App() {
     return (
-        <Router>
-            <AuthProvider>
+        <AuthProvider>
+            <Router>
                 <Navbar />
                 <main>
                     <Routes>
 
-                        {/* ─────────────────────────────────────────── */}
-                        {/* ROUTES PUBLIQUES – pas de garde d'auth       */}
-                        {/* ─────────────────────────────────────────── */}
-                        <Route path="/"                       element={<HomePage />} />
-                        <Route path="/publications"           element={<PublicationsPage />} />
-                        <Route path="/publications/:id"       element={<PublicationDetail />} />
-                        <Route path="/researchers"            element={<ResearchersPage />} />
-                        <Route path="/researchers/:id"        element={<ResearcherDetail />} />
-                        <Route path="/search"                 element={<SearchPage />} />
-                        <Route path="/login"                  element={<LoginPage />} />
-                        <Route path="/register"               element={<RegisterPage />} />
-                        <Route path="/unauthorized"           element={<UnauthorizedPage />} />
+                        {/* ══ Routes publiques ══ */}
+                        <Route path="/"                    element={<HomePage />} />
+                        <Route path="/publications"        element={<Publications />} />
+                        <Route path="/publications/:id"    element={<PublicationDetail />} />
+                        <Route path="/researchers"         element={<Researchers />} />
+                        <Route path="/researchers/:id"     element={<ResearcherDetail />} />
+                        <Route path="/search"              element={<SearchPage />} />
+                        <Route path="/login"               element={<Login />} />
+                        <Route path="/register"            element={<Register />} />
 
-                        {/* ─────────────────────────────────────────── */}
-                        {/* ROUTES PRIVÉES – login requis                */}
-                        {/* ─────────────────────────────────────────── */}
+                        {/* ══ Routes authentifiées (tout rôle) ══ */}
                         <Route path="/profile" element={
                             <PrivateRoute>
-                                <UserProfile />
+                                <Profile />
                             </PrivateRoute>
                         } />
 
-                        {/* Espace Administrateur – ROLE_ADMIN requis */}
+                        {/* ══ Dashboard Admin (ADMIN uniquement) ══ */}
                         <Route path="/admin/*" element={
-                            <PrivateRoute role="ROLE_ADMIN">
-                                <AdminPanel />
+                            <PrivateRoute roles={['ADMIN']}>
+                                <AdminDashboard />
                             </PrivateRoute>
                         } />
 
-                        {/* Espace Modérateur – ROLE_MODERATEUR requis */}
+                        {/* ══ Dashboard Modérateur (MODERATEUR ou ADMIN) ══
+                            ✅ FIX : on accepte les deux rôles ici
+                            user.role est une string "MODERATEUR" ou "ADMIN"
+                        ══ */}
                         <Route path="/moderateur/*" element={
-                            <PrivateRoute role="ROLE_MODERATEUR">
+                            <PrivateRoute roles={['MODERATEUR', 'ADMIN']}>
                                 <ModerateurPanel />
                             </PrivateRoute>
                         } />
 
-                        {/* Fallback */}
-                        <Route path="*" element={<HomePage />} />
-
                     </Routes>
                 </main>
-                <Footer />
-            </AuthProvider>
-        </Router>
+            </Router>
+        </AuthProvider>
     );
 }
 

@@ -1,35 +1,76 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import AuthService from '../services/auth.service';
+import api from '../services/api';
 
+/**
+ * AuthContext
+ *
+ * Le backend renvoie après /api/auth/signin :
+ * { token, type, id, email, nom, prenom, role }
+ * où role est une STRING : "ADMIN" | "MODERATEUR" | "UTILISATEUR"
+ *
+ * On stocke cet objet tel quel dans localStorage sous la clé "user".
+ * Toutes les vérifications de rôle utilisent user.role (string).
+ */
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(() => {
+        // Initialiser depuis localStorage au démarrage
+        try {
+            const stored = localStorage.getItem('user');
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
+        }
+    });
 
-    useEffect(() => {
-        // Charger l'utilisateur depuis localStorage au démarrage
-        const currentUser = AuthService.getCurrentUser();
-        setUser(currentUser);
-        setLoading(false);
-    }, []);
+    // ── Helpers de rôle ──────────────────────────────────────────
+    // user.role est une string "MODERATEUR", "ADMIN", "UTILISATEUR"
+    const isAdmin = user?.role === 'ADMIN';
+    const isModerator = user?.role === 'MODERATEUR' || user?.role === 'ADMIN';
+    const isAuthenticated = !!user;
 
+    // ── Login ────────────────────────────────────────────────────
     const login = async (email, password) => {
-        const data = await AuthService.login(email, password);
-        setUser(AuthService.getCurrentUser());
-        return data;
+        const response = await api.post('/auth/signin', { email, password });
+        const userData = response.data;
+        // { token, type, id, email, nom, prenom, role }
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        return userData;
     };
 
+    // ── Logout ───────────────────────────────────────────────────
     const logout = () => {
-        AuthService.logout();
+        localStorage.removeItem('user');
         setUser(null);
     };
 
-    const register = (nom, prenom, email, password) =>
-        AuthService.register(nom, prenom, email, password);
+    // ── Token refresh : si localStorage a changé dans un autre onglet
+    useEffect(() => {
+        const handleStorage = (e) => {
+            if (e.key === 'user') {
+                try {
+                    const updated = e.newValue ? JSON.parse(e.newValue) : null;
+                    setUser(updated);
+                } catch {
+                    setUser(null);
+                }
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, []);
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+        <AuthContext.Provider value={{
+            user,
+            isAuthenticated,
+            isAdmin,
+            isModerator,
+            login,
+            logout,
+        }}>
             {children}
         </AuthContext.Provider>
     );
@@ -41,5 +82,4 @@ export const useAuth = () => {
     return ctx;
 };
 
-export { AuthContext };
 export default AuthContext;

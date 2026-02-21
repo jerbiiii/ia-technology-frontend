@@ -7,21 +7,19 @@ import SearchBar from '../components/SearchBar';
 import Loader from '../components/Loader';
 import './Publications.css';
 
-/* ══════════════════════════════════════════════
-   Page Publications – ACCÈS LIBRE (sans connexion)
-   Utilise les endpoints /public/
-   ══════════════════════════════════════════════ */
+const fadeUp = {
+    hidden:  { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+};
 
 const Publications = () => {
     const [publications, setPublications] = useState([]);
-    const [domains, setDomains] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchKeyword, setSearchKeyword] = useState('');
-    const [selectedDomain, setSelectedDomain] = useState('');
+    const [domains,      setDomains]      = useState([]);
+    const [loading,      setLoading]      = useState(true);
+    const [searchKeyword,   setSearchKeyword]   = useState('');
+    const [selectedDomain,  setSelectedDomain]  = useState('');
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
         try {
@@ -43,14 +41,10 @@ const Publications = () => {
         const params = {};
         if (keyword) params.keyword = keyword;
         if (selectedDomain) params.domaineId = selectedDomain;
-
-        if (!keyword && !selectedDomain) {
-            const pubs = await publicationService.getAllPublic();
-            setPublications(pubs);
-        } else {
-            const results = await publicationService.searchPublic(params);
-            setPublications(results);
-        }
+        const pubs = (!keyword && !selectedDomain)
+            ? await publicationService.getAllPublic()
+            : await publicationService.searchPublic(params);
+        setPublications(pubs);
     };
 
     const handleDomainChange = async (domainId) => {
@@ -58,14 +52,10 @@ const Publications = () => {
         const params = {};
         if (searchKeyword) params.keyword = searchKeyword;
         if (domainId) params.domaineId = domainId;
-
-        if (!searchKeyword && !domainId) {
-            const pubs = await publicationService.getAllPublic();
-            setPublications(pubs);
-        } else {
-            const results = await publicationService.searchPublic(params);
-            setPublications(results);
-        }
+        const pubs = (!searchKeyword && !domainId)
+            ? await publicationService.getAllPublic()
+            : await publicationService.searchPublic(params);
+        setPublications(pubs);
     };
 
     if (loading) return <Loader />;
@@ -75,33 +65,49 @@ const Publications = () => {
             <motion.h1
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.45 }}
             >
                 Publications scientifiques
             </motion.h1>
 
-            <SearchBar
-                onSearch={handleSearch}
-                onDomainChange={handleDomainChange}
-                domains={domains}
-            />
+            <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+            >
+                <SearchBar
+                    onSearch={handleSearch}
+                    onDomainChange={handleDomainChange}
+                    domains={domains}
+                />
+            </motion.div>
 
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
                 {publications.length === 0 ? (
-                    <p className="no-results">Aucune publication trouvée.</p>
-                ) : (
-                    <motion.div
-                        className="publications-grid"
+                    <motion.p
+                        key="empty"
+                        className="no-results"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ staggerChildren: 0.1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        Aucune publication trouvée.
+                    </motion.p>
+                ) : (
+                    /* ✅ Animation au scroll : chaque carte entre quand elle devient visible */
+                    <motion.div
+                        key="grid"
+                        className="publications-grid"
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, amount: 0.05 }}
+                        variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
                     >
                         {publications.map(pub => (
                             <motion.div
                                 key={pub.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                layout
+                                variants={fadeUp}
+                                viewport={{ once: true }}
                             >
                                 <PublicationCard publication={pub} />
                             </motion.div>

@@ -78,30 +78,64 @@
 }
 .navbar__btn-register:hover { opacity: .9; }
 
-/* User avatar dropdown */
-.navbar__user-menu { position: relative; display: flex; align-items: center; }
+/* ✅ User avatar — maintenant un <button> */
+.navbar__user-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .navbar__avatar {
-    width: 36px; height: 36px;
+    width: 36px;
+    height: 36px;
     background: linear-gradient(135deg, #0d9488, #7c3aed);
     border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: .95rem;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: .95rem;
     cursor: pointer;
-    text-decoration: none;
+    transition: transform .2s, box-shadow .2s;
 }
+.navbar__avatar:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 3px rgba(255,255,255,.3);
+}
+
+/* ✅ Dropdown contrôlé par classe JS (plus de :hover CSS) */
 .navbar__dropdown {
-    display: none;
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 10px);
     right: 0;
     background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.15);
-    min-width: 160px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.18);
+    min-width: 200px;
     overflow: hidden;
     z-index: 200;
+    /* animation d'apparition */
+    animation: dropIn .18s ease;
 }
-.navbar__user-menu:hover .navbar__dropdown { display: block; }
+
+@keyframes dropIn {
+    from { opacity: 0; transform: translateY(-8px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);   }
+}
+
+.navbar__dropdown-email {
+    padding: 12px 16px 8px;
+    font-size: .78rem;
+    color: #94a3b8;
+    font-weight: 500;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .navbar__dropdown a,
 .navbar__dropdown button {
     display: block;
@@ -115,9 +149,17 @@
     text-decoration: none;
     cursor: pointer;
     transition: background .15s;
+    font-family: inherit;
 }
 .navbar__dropdown a:hover,
 .navbar__dropdown button:hover { background: #f1f5f9; }
+
+/* Bouton déconnexion — rouge discret */
+.navbar__logout-btn {
+    color: #dc2626 !important;
+    border-top: 1px solid #f1f5f9;
+}
+.navbar__logout-btn:hover { background: #fef2f2 !important; }
 
 /* Burger (mobile) */
 .navbar__burger {
@@ -150,4 +192,27 @@
     }
     .navbar__nav.open, .navbar__auth.open { display: flex; }
     .navbar__auth-btns { flex-direction: column; }
+    .navbar__dropdown {
+        position: static;
+        box-shadow: none;
+        border-radius: 8px;
+        margin-top: 8px;
+        animation: none;
+    }
 }
+
+/* ── Badge rôle dans le dropdown ── */
+.navbar__dropdown-role {
+    padding: 4px 16px 10px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.role-badge {
+    display: inline-block;
+    font-size: .75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+.role-badge--admin        { background: #fef2f2; color: #dc2626; }
+.role-badge--moderateur   { background: #fefce8; color: #ca8a04; }
+.role-badge--utilisateur  { background: #f0f9ff; color: #0284c7; }

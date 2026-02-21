@@ -2,42 +2,35 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 /**
- * PrivateRoute – protège une route selon l'authentification et le rôle optionnel.
+ * PrivateRoute — composant de protection de route
  *
- * Usage :
- *   <PrivateRoute>                        → login requis (tout utilisateur connecté)
- *   <PrivateRoute role="ROLE_ADMIN">      → login + rôle ADMIN
- *   <PrivateRoute role="ROLE_MODERATEUR"> → login + rôle MODÉRATEUR
+ * Props :
+ *   roles : string[] — liste des rôles autorisés, ex: ['ADMIN'] ou ['ADMIN','MODERATEUR']
+ *            Si non fourni → toute personne authentifiée peut accéder
+ *
+ * user.role est une STRING : "ADMIN" | "MODERATEUR" | "UTILISATEUR"
+ * (c'est ce que renvoie le backend dans JwtResponse)
+ *
+ * Exemples d'utilisation dans App.jsx :
+ *   <Route path="/admin/*"      element={<PrivateRoute roles={['ADMIN']} />}>
+ *   <Route path="/moderateur/*" element={<PrivateRoute roles={['ADMIN','MODERATEUR']} />}>
+ *   <Route path="/profile"      element={<PrivateRoute />}>
  */
-const PrivateRoute = ({ children, role }) => {
-    const { user, loading } = useAuth();
+const PrivateRoute = ({ children, roles }) => {
+    const { user } = useAuth();
     const location = useLocation();
 
-    // Attendre l'initialisation de l'auth avant de décider
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '80px' }}>
-                <div className="spinner" style={{
-                    width: 36, height: 36,
-                    border: '3px solid #e2e8f0',
-                    borderTopColor: '#1d4ed8',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite'
-                }} />
-            </div>
-        );
-    }
-
-    // Non connecté → rediriger vers login en sauvegardant la route voulue
+    // 1. Pas connecté → login
     if (!user) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // Rôle requis mais non possédé → accès refusé
-    if (role && !user.roles?.includes(role)) {
-        return <Navigate to="/unauthorized" replace />;
+    // 2. Rôle insuffisant → accueil
+    if (roles && !roles.includes(user.role)) {
+        return <Navigate to="/" replace />;
     }
 
+    // 3. Accès autorisé
     return children;
 };
 

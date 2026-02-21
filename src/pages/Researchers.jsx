@@ -5,22 +5,20 @@ import researcherService from '../services/researcher.service';
 import domainService from '../services/domain.service';
 import './Researchers.css';
 
-/* ══════════════════════════════════════════════
-   Page Chercheurs – ACCÈS LIBRE (sans connexion)
-   Utilise les endpoints /public/
-   ══════════════════════════════════════════════ */
+const fadeUp = {
+    hidden:  { opacity: 0, y: 28 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+};
 
 const Researchers = () => {
     const [researchers, setResearchers] = useState([]);
-    const [domains, setDomains] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [domains,     setDomains]     = useState([]);
+    const [loading,     setLoading]     = useState(true);
+    const [searchTerm,     setSearchTerm]     = useState('');
     const [selectedDomain, setSelectedDomain] = useState('');
     const debounceRef = useRef(null);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
         try {
@@ -37,28 +35,21 @@ const Researchers = () => {
         }
     };
 
-    // Debounce la recherche à 300ms
     useEffect(() => {
         clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-            handleSearch();
-        }, 300);
+        debounceRef.current = setTimeout(() => { handleSearch(); }, 300);
         return () => clearTimeout(debounceRef.current);
     }, [searchTerm, selectedDomain]);
 
     const handleSearch = async () => {
         try {
             const params = {};
-            if (searchTerm) params.nom = searchTerm;
+            if (searchTerm)     params.nom     = searchTerm;
             if (selectedDomain) params.domaine = selectedDomain;
-
-            if (!searchTerm && !selectedDomain) {
-                const results = await researcherService.getAllPublic();
-                setResearchers(results);
-            } else {
-                const results = await researcherService.searchPublic(params);
-                setResearchers(results);
-            }
+            const results = (!searchTerm && !selectedDomain)
+                ? await researcherService.getAllPublic()
+                : await researcherService.searchPublic(params);
+            setResearchers(results);
         } catch (error) {
             console.error('Erreur recherche:', error);
         }
@@ -71,11 +62,22 @@ const Researchers = () => {
             className="researchers-page container"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
         >
-            <h1>Chercheurs</h1>
+            <motion.h1
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.45 }}
+            >
+                Chercheurs
+            </motion.h1>
 
-            <div className="search-bar">
+            <motion.div
+                className="search-bar"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+            >
                 <input
                     type="text"
                     placeholder="Rechercher par nom..."
@@ -93,30 +95,39 @@ const Researchers = () => {
                         <option key={d.id} value={d.nom}>{d.nom}</option>
                     ))}
                 </select>
-            </div>
+            </motion.div>
 
             {researchers.length === 0 ? (
                 <p className="no-results">Aucun chercheur trouvé.</p>
             ) : (
-                <div className="researchers-grid">
+                /* ✅ Animation au scroll : grille entière */
+                <motion.div
+                    className="researchers-grid"
+                    variants={{ visible: { transition: { staggerChildren: 0.09 } } }}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.05 }}
+                >
                     {researchers.map(researcher => (
                         <motion.div
                             key={researcher.id}
-                            className="researcher-card"
-                            whileHover={{ y: -5, boxShadow: '0 8px 20px rgba(0,0,0,0.15)' }}
+                            variants={fadeUp}
+                            whileHover={{ y: -5, boxShadow: '0 8px 20px rgba(0,0,0,0.15)', transition: { duration: 0.2 } }}
                         >
-                            <h3>
-                                <Link to={`/researchers/${researcher.id}`}>
-                                    {researcher.prenom} {researcher.nom}
-                                </Link>
-                            </h3>
-                            <p><strong>Email:</strong> {researcher.email || 'Non renseigné'}</p>
-                            <p><strong>Affiliation:</strong> {researcher.affiliation || 'Non renseignée'}</p>
-                            <p><strong>Domaine principal:</strong> {researcher.domainePrincipalNom || 'Aucun'}</p>
-                            <Link to={`/researchers/${researcher.id}`} className="btn-view">Voir le profil</Link>
+                            <div className="researcher-card">
+                                <h3>
+                                    <Link to={`/researchers/${researcher.id}`}>
+                                        {researcher.prenom} {researcher.nom}
+                                    </Link>
+                                </h3>
+                                <p><strong>Email:</strong> {researcher.email || 'Non renseigné'}</p>
+                                <p><strong>Affiliation:</strong> {researcher.affiliation || 'Non renseignée'}</p>
+                                <p><strong>Domaine principal:</strong> {researcher.domainePrincipalNom || 'Aucun'}</p>
+                                <Link to={`/researchers/${researcher.id}`} className="btn-view">Voir le profil</Link>
+                            </div>
                         </motion.div>
                     ))}
-                </div>
+                </motion.div>
             )}
         </motion.div>
     );

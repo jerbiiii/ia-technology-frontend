@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../services/api';
-import './AdminStats.css';
+import './Adminstats.css'; // ✅ FIX: casse corrigée (était './AdminStats.css')
 
 const fadeUp = {
     hidden: { opacity: 0, y: 20 },
@@ -122,16 +122,15 @@ const AdminStats = () => {
                 api.get('/admin/audit'),
             ]);
 
-            const pubs     = pubsR.status    === 'fulfilled' ? pubsR.value.data    : [];
-            const res      = resR.status     === 'fulfilled' ? resR.value.data     : [];
-            const users    = usersR.status   === 'fulfilled' ? usersR.value.data   : [];
-            const domains  = domR.status     === 'fulfilled' ? domR.value.data     : [];
-            const allLogs  = logsR.status    === 'fulfilled' ? logsR.value.data    : [];
+            const pubs    = pubsR.status    === 'fulfilled' ? pubsR.value.data    : [];
+            const res     = resR.status     === 'fulfilled' ? resR.value.data     : [];
+            const users   = usersR.status   === 'fulfilled' ? usersR.value.data   : [];
+            const domains = domR.status     === 'fulfilled' ? domR.value.data     : [];
+            const allLogs = logsR.status    === 'fulfilled' ? logsR.value.data    : [];
 
             setStats({ pubs: pubs.length, researchers: res.length, users: users.length, domains: domains.length });
             setLogs(allLogs.slice(0, 8));
 
-            // Comptage par action
             const breakdown = {};
             allLogs.forEach(l => { breakdown[l.action] = (breakdown[l.action] || 0) + 1; });
             setActionBreakdown(breakdown);
@@ -141,7 +140,6 @@ const AdminStats = () => {
         fetchAll();
     }, []);
 
-    // Sparkline factice basée sur le total (données simulées pour la tendance)
     const spark = (total) => {
         if (!total) return [];
         const arr = [];
@@ -157,8 +155,12 @@ const AdminStats = () => {
     return (
         <div className="adminstats">
             {/* ── Header ── */}
-            <motion.div className="adminstats__header"
-                        initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <motion.div
+                className="adminstats__header"
+                initial={{ opacity: 0, y: -16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+            >
                 <div>
                     <h2 className="adminstats__title">Vue d'ensemble</h2>
                     <p className="adminstats__sub">Statistiques en temps réel de la plateforme</p>
@@ -171,39 +173,22 @@ const AdminStats = () => {
 
             {/* ── Stat cards ── */}
             <div className="astat-grid">
-                <StatCard
-                    icon="📄" label="Publications" color="#1C4ED8"
-                    value={loading ? null : stats.pubs}
-                    sub="Articles scientifiques"
-                    sparkData={spark(stats.pubs)}
-                    delay={0} to="publications"
-                />
-                <StatCard
-                    icon="👥" label="Chercheurs" color="#0D9488"
-                    value={loading ? null : stats.researchers}
-                    sub="Profils actifs"
-                    sparkData={spark(stats.researchers)}
-                    delay={1} to="researchers"
-                />
-                <StatCard
-                    icon="👤" label="Utilisateurs" color="#7C3AED"
-                    value={loading ? null : stats.users}
-                    sub="Comptes inscrits"
-                    sparkData={spark(stats.users)}
-                    delay={2} to="users"
-                />
-                <StatCard
-                    icon="🏷️" label="Domaines" color="#D97706"
-                    value={loading ? null : stats.domains}
-                    sub="Domaines de recherche"
-                    sparkData={spark(stats.domains)}
-                    delay={3} to="domains"
-                />
+                <StatCard icon="📄" label="Publications" color="#1C4ED8"
+                          value={loading ? null : stats.pubs} sub="Articles scientifiques"
+                          sparkData={spark(stats.pubs)} delay={0} to="publications" />
+                <StatCard icon="👥" label="Chercheurs" color="#0D9488"
+                          value={loading ? null : stats.researchers} sub="Profils actifs"
+                          sparkData={spark(stats.researchers)} delay={1} to="researchers" />
+                <StatCard icon="👤" label="Utilisateurs" color="#7C3AED"
+                          value={loading ? null : stats.users} sub="Comptes inscrits"
+                          sparkData={spark(stats.users)} delay={2} to="users" />
+                <StatCard icon="🏷️" label="Domaines" color="#D97706"
+                          value={loading ? null : stats.domains} sub="Domaines de recherche"
+                          sparkData={spark(stats.domains)} delay={3} to="domains" />
             </div>
 
             {/* ── Middle row ── */}
             <div className="adminstats__mid">
-
                 {/* Actions breakdown */}
                 <motion.div className="abreakdown"
                             variants={fadeUp} custom={4} initial="hidden" animate="visible">

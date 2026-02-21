@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import api from '../services/api';
 import AuthService from '../services/auth.service';
 import './PublicationDetail.css';
 
 /* ══════════════════════════════════════════════
    Détail d'une Publication – ACCÈS LIBRE pour consultation
-   Téléchargement : accessible à tous (selon l'énoncé)
    ══════════════════════════════════════════════ */
 
 const PublicationDetail = () => {
     const { id }      = useParams();
     const navigate    = useNavigate();
-    const [pub, setPub]             = useState(null);
-    const [loading, setLoading]     = useState(true);
-    const [error, setError]         = useState(null);
-    const [downloading, setDl]      = useState(false);
+    const [pub, setPub]         = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError]     = useState(null);
+    const [downloading, setDl]  = useState(false);
 
     useEffect(() => {
         api.get(`/publications/${id}`)
@@ -33,7 +33,6 @@ const PublicationDetail = () => {
             const url  = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href  = url;
-            // Nom du fichier depuis le header ou nom par défaut
             const disposition = response.headers['content-disposition'];
             const filename = disposition
                 ? disposition.split('filename=')[1]?.replace(/"/g, '')
@@ -66,8 +65,12 @@ const PublicationDetail = () => {
     const user = AuthService.getCurrentUser();
 
     return (
-        <div className="pub-detail">
-
+        <motion.div
+            className="pub-detail"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+        >
             {/* Breadcrumb */}
             <nav className="pub-detail__breadcrumb">
                 <Link to="/">Accueil</Link>
@@ -127,21 +130,23 @@ const PublicationDetail = () => {
                     <div className="pub-sidebar-card">
                         <h3>Informations</h3>
                         <dl>
-                            {pub.annee     && <><dt>Année</dt><dd>{pub.annee}</dd></>}
-                            {pub.doi       && <><dt>DOI</dt><dd><a href={`https://doi.org/${pub.doi}`} target="_blank" rel="noreferrer">{pub.doi}</a></dd></>}
-                            {pub.revue     && <><dt>Revue</dt><dd>{pub.revue}</dd></>}
-                            {pub.domaine   && <><dt>Domaine</dt><dd>{pub.domaine.nom}</dd></>}
+                            {pub.annee   && <><dt>Année</dt><dd>{pub.annee}</dd></>}
+                            {pub.doi     && <><dt>DOI</dt><dd><a href={`https://doi.org/${pub.doi}`} target="_blank" rel="noreferrer">{pub.doi}</a></dd></>}
+                            {pub.revue   && <><dt>Revue</dt><dd>{pub.revue}</dd></>}
+                            {pub.domaine && <><dt>Domaine</dt><dd>{pub.domaine.nom}</dd></>}
                         </dl>
 
-                        {/* Bouton de téléchargement */}
-                        {pub.fichier && (
-                            <button
+                        {/* ✅ FIX: pub.cheminFichier au lieu de pub.fichier */}
+                        {pub.cheminFichier && (
+                            <motion.button
                                 className="pub-sidebar-card__dl"
                                 onClick={handleDownload}
                                 disabled={downloading}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                             >
-                                {downloading ? 'Téléchargement...' : '⬇ Télécharger le PDF'}
-                            </button>
+                                {downloading ? '⏳ Téléchargement...' : '⬇ Télécharger le PDF'}
+                            </motion.button>
                         )}
 
                         {!user && (
@@ -151,7 +156,7 @@ const PublicationDetail = () => {
                         )}
                     </div>
 
-                    {/* Autres publications du même domaine */}
+                    {/* Même domaine */}
                     {pub.domaine && (
                         <div className="pub-sidebar-card">
                             <h3>Même domaine</h3>
@@ -162,7 +167,7 @@ const PublicationDetail = () => {
                     )}
                 </aside>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
