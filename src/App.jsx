@@ -17,7 +17,7 @@ import Register         from './pages/Register';
 import Profile          from './pages/Profile';
 
 // ── Dashboard Admin ──
-import AdminDashboard   from './pages/AdminPanel';
+import AdminDashboard   from './pages/admin/AdminPanel.jsx';
 
 // ── Dashboard Modérateur ──
 import ModerateurPanel  from './pages/moderator/ModeratorPanel';

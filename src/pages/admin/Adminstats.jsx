@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import api from '../services/api';
+import api from '../../services/api.js';
 import './Adminstats.css'; // ✅ FIX: casse corrigée (était './AdminStats.css')
 
 const fadeUp = {

@@ -1,11 +1,11 @@
 import { Routes, Route } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import ResearcherManagement from './admin/ResearcherManagement';
-import UserManagement from './admin/UserManagement';
-import PublicationManagement from './admin/PublicationManagement';
-import DomainManagement from './admin/DomainManagement';
-import AuditLogPage from './admin/AuditLogPage';
-import AdminStats from './AdminStats';     // ✅ nouveau tableau de bord
+import ResearcherManagement from './ResearcherManagement.jsx';
+import UserManagement from './UserManagement.jsx';
+import PublicationManagement from './PublicationManagement.jsx';
+import DomainManagement from './DomainManagement.jsx';
+import AuditLogPage from './AuditLogPage.jsx';
+import AdminStats from './Adminstats.jsx';     // ✅ nouveau tableau de bord
 import './AdminPanel.css';
 
 const AdminPanel = () => {
