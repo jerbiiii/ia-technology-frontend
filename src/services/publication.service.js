@@ -1,6 +1,20 @@
 import api from './api.js';
 
 class PublicationService {
+    // ── Endpoints PUBLICS (sans authentification) ──
+    getAllPublic() {
+        return api.get('/public/publications').then(res => res.data);
+    }
+
+    getByIdPublic(id) {
+        return api.get(`/public/publications/${id}`).then(res => res.data);
+    }
+
+    searchPublic(params) {
+        return api.get('/public/publications/search', { params }).then(res => res.data);
+    }
+
+    // ── Endpoints PRIVÉS (authentification requise) ──
     getAll() {
         return api.get('/publications').then(res => res.data);
     }
@@ -38,9 +52,11 @@ class PublicationService {
             link.remove();
         });
     }
+
     getByChercheurId(chercheurId) {
         return api.get('/publications/search', { params: { chercheurId } }).then(res => res.data);
     }
+
     search(params) {
         return api.get('/publications/search', { params }).then(res => res.data);
     }

@@ -1,6 +1,20 @@
 import api from './api.js';
 
 class ResearcherService {
+    // ── Endpoints PUBLICS (sans authentification) ──
+    getAllPublic() {
+        return api.get('/public/researchers').then(res => res.data);
+    }
+
+    getByIdPublic(id) {
+        return api.get(`/public/researchers/${id}`).then(res => res.data);
+    }
+
+    searchPublic(params) {
+        return api.get('/public/researchers/search', { params }).then(res => res.data);
+    }
+
+    // ── Endpoints PRIVÉS (authentification requise) ──
     getAll() {
         return api.get('/researchers').then(res => res.data);
     }

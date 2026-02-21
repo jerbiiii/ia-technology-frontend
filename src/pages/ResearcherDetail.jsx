@@ -5,22 +5,30 @@ import researcherService from '../services/researcher.service';
 import publicationService from '../services/publication.service';
 import './ResearcherDetail.css';
 
+/* ══════════════════════════════════════════════
+   Détail Chercheur – ACCÈS LIBRE (sans connexion)
+   Utilise les endpoints /public/
+   ══════════════════════════════════════════════ */
+
 const ResearcherDetail = () => {
     const { id } = useParams();
     const [researcher, setResearcher] = useState(null);
     const [publications, setPublications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const researcherData = await researcherService.getById(id);
+                const [researcherData, pubsData] = await Promise.all([
+                    researcherService.getByIdPublic(id),
+                    publicationService.searchPublic({ chercheurId: id })
+                ]);
                 setResearcher(researcherData);
-                // Récupérer les publications de ce chercheur
-                const pubsData = await publicationService.search({ chercheurId: id });
                 setPublications(pubsData);
-            } catch (error) {
-                console.error('Erreur chargement chercheur:', error);
+            } catch (err) {
+                console.error('Erreur chargement chercheur:', err);
+                setError('Chercheur introuvable.');
             } finally {
                 setLoading(false);
             }
@@ -29,7 +37,7 @@ const ResearcherDetail = () => {
     }, [id]);
 
     if (loading) return <div className="loader">Chargement...</div>;
-    if (!researcher) return <div className="error">Chercheur non trouvé</div>;
+    if (error || !researcher) return <div className="error">{error || 'Chercheur non trouvé'}</div>;
 
     return (
         <motion.div
@@ -43,21 +51,21 @@ const ResearcherDetail = () => {
             <div className="profile-header">
                 <h1>{researcher.prenom} {researcher.nom}</h1>
                 <p className="affiliation">{researcher.affiliation || 'Affiliation non renseignée'}</p>
-                <p className="email">{researcher.email && `Email: ${researcher.email}`}</p>
+                {researcher.email && <p className="email">Email: {researcher.email}</p>}
             </div>
 
             <div className="domains-section">
                 <h2>Domaines de recherche</h2>
                 <div className="domain-tags">
-                    {researcher.domainePrincipal && (
+                    {researcher.domainePrincipalNom && (
                         <span className="domain-tag principal">
-              Principal: {researcher.domainePrincipalNom}
-            </span>
+                            Principal : {researcher.domainePrincipalNom}
+                        </span>
                     )}
                     {researcher.autresDomainesIds?.map(domainId => (
                         <span key={domainId} className="domain-tag secondary">
-              Domaine {domainId}
-            </span>
+                            Domaine #{domainId}
+                        </span>
                     ))}
                 </div>
             </div>
@@ -74,10 +82,14 @@ const ResearcherDetail = () => {
                                     <Link to={`/publications/${pub.id}`}>{pub.titre}</Link>
                                 </h3>
                                 <p className="publication-date">
-                                    {pub.datePublication ? new Date(pub.datePublication).toLocaleDateString('fr-FR') : 'Date inconnue'}
+                                    {pub.datePublication
+                                        ? new Date(pub.datePublication).toLocaleDateString('fr-FR')
+                                        : 'Date inconnue'}
                                 </p>
                                 <p className="publication-abstract">
-                                    {pub.resume ? (pub.resume.length > 150 ? pub.resume.substring(0,150)+'...' : pub.resume) : 'Aucun résumé'}
+                                    {pub.resume
+                                        ? (pub.resume.length > 150 ? pub.resume.substring(0, 150) + '...' : pub.resume)
+                                        : 'Aucun résumé'}
                                 </p>
                             </div>
                         ))}

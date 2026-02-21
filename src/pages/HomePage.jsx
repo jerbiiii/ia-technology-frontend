@@ -5,8 +5,7 @@ import './HomePage.css';
 
 /* ══════════════════════════════════════════════
    Page d'accueil – ACCÈS LIBRE (sans connexion)
-   Affiche : annonces du modérateur, chercheurs
-   récents, publications récentes, domaines.
+   Utilise UNIQUEMENT les endpoints /public/
    ══════════════════════════════════════════════ */
 
 const HomePage = () => {
@@ -19,10 +18,10 @@ const HomePage = () => {
     useEffect(() => {
         const fetchPublic = async () => {
             const [annR, pubR, resR, domR] = await Promise.allSettled([
-                api.get('/announcements'),   // actualités du modérateur
-                api.get('/publications?limit=6'),
-                api.get('/researchers?limit=6'),
-                api.get('/domains'),
+                api.get('/public/actualites'),
+                api.get('/public/publications'),
+                api.get('/public/researchers'),
+                api.get('/public/domains'),
             ]);
 
             if (annR.status === 'fulfilled') setAnnouncements(annR.value.data?.slice(0, 3) ?? []);
@@ -77,7 +76,7 @@ const HomePage = () => {
                 </section>
             )}
 
-            {/* ── Actualités & Annonces (contenu modérateur) ── */}
+            {/* ── Actualités & Annonces ── */}
             {announcements.length > 0 && (
                 <section className="section section--alt">
                     <h2 className="section__title">Actualités & Annonces</h2>
@@ -105,16 +104,22 @@ const HomePage = () => {
                     <div className="skeleton-grid">
                         {[...Array(3)].map((_, i) => <div key={i} className="skeleton-card" />)}
                     </div>
+                ) : publications.length === 0 ? (
+                    <p style={{ color: '#64748b', textAlign: 'center' }}>Aucune publication disponible.</p>
                 ) : (
                     <div className="pub-grid">
                         {publications.map(p => (
                             <Link key={p.id} to={`/publications/${p.id}`} className="pub-card">
-                                <div className="pub-card__badge">{p.domaine?.nom ?? 'Général'}</div>
+                                <div className="pub-card__badge">
+                                    {p.domainesNoms ? [...p.domainesNoms][0] : 'Général'}
+                                </div>
                                 <h3 className="pub-card__title">{p.titre}</h3>
                                 <p className="pub-card__authors">
-                                    {p.chercheurs?.map(c => `${c.prenom} ${c.nom}`).join(', ')}
+                                    {p.chercheursNoms ? [...p.chercheursNoms].join(', ') : ''}
                                 </p>
-                                <span className="pub-card__year">{p.annee ?? ''}</span>
+                                <span className="pub-card__year">
+                                    {p.datePublication ? new Date(p.datePublication).getFullYear() : ''}
+                                </span>
                             </Link>
                         ))}
                     </div>
@@ -131,6 +136,8 @@ const HomePage = () => {
                     <div className="skeleton-grid">
                         {[...Array(3)].map((_, i) => <div key={i} className="skeleton-card" />)}
                     </div>
+                ) : researchers.length === 0 ? (
+                    <p style={{ color: '#64748b', textAlign: 'center' }}>Aucun chercheur disponible.</p>
                 ) : (
                     <div className="researcher-grid">
                         {researchers.map(r => (
@@ -140,9 +147,9 @@ const HomePage = () => {
                                 </div>
                                 <div className="researcher-card__info">
                                     <h3 className="researcher-card__name">{r.prenom} {r.nom}</h3>
-                                    <p className="researcher-card__domain">{r.domaine?.nom ?? r.specialite ?? ''}</p>
+                                    <p className="researcher-card__domain">{r.domainePrincipalNom ?? ''}</p>
                                     <span className="researcher-card__pubs">
-                                        {r.publications?.length ?? 0} publication(s)
+                                        {r.affiliation ?? ''}
                                     </span>
                                 </div>
                             </Link>

@@ -7,6 +7,11 @@ import SearchBar from '../components/SearchBar';
 import Loader from '../components/Loader';
 import './Publications.css';
 
+/* ══════════════════════════════════════════════
+   Page Publications – ACCÈS LIBRE (sans connexion)
+   Utilise les endpoints /public/
+   ══════════════════════════════════════════════ */
+
 const Publications = () => {
     const [publications, setPublications] = useState([]);
     const [domains, setDomains] = useState([]);
@@ -21,8 +26,8 @@ const Publications = () => {
     const fetchData = async () => {
         try {
             const [pubs, doms] = await Promise.all([
-                publicationService.getAll(),
-                domainService.getAll()
+                publicationService.getAllPublic(),
+                domainService.getAllPublic()
             ]);
             setPublications(pubs);
             setDomains(doms);
@@ -35,28 +40,32 @@ const Publications = () => {
 
     const handleSearch = async (keyword) => {
         setSearchKeyword(keyword);
-        if (keyword.trim() === '' && !selectedDomain) {
-            // si recherche vide, on recharge tout
-            const pubs = await publicationService.getAll();
+        const params = {};
+        if (keyword) params.keyword = keyword;
+        if (selectedDomain) params.domaineId = selectedDomain;
+
+        if (!keyword && !selectedDomain) {
+            const pubs = await publicationService.getAllPublic();
             setPublications(pubs);
         } else {
-            // appel API de recherche (à implémenter côté backend)
-            const params = {};
-            if (keyword) params.keyword = keyword;
-            if (selectedDomain) params.domaineId = selectedDomain;
-            const results = await publicationService.search(params);
+            const results = await publicationService.searchPublic(params);
             setPublications(results);
         }
     };
 
     const handleDomainChange = async (domainId) => {
         setSelectedDomain(domainId);
-        // on peut refaire une recherche combinée
         const params = {};
         if (searchKeyword) params.keyword = searchKeyword;
         if (domainId) params.domaineId = domainId;
-        const results = await publicationService.search(params);
-        setPublications(results);
+
+        if (!searchKeyword && !domainId) {
+            const pubs = await publicationService.getAllPublic();
+            setPublications(pubs);
+        } else {
+            const results = await publicationService.searchPublic(params);
+            setPublications(results);
+        }
     };
 
     if (loading) return <Loader />;

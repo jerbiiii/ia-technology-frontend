@@ -1,6 +1,12 @@
 import api from './api.js';
 
 class DomainService {
+    // ── Endpoint PUBLIC ──
+    getAllPublic() {
+        return api.get('/public/domains').then(res => res.data);
+    }
+
+    // ── Endpoints PRIVÉS ──
     getAll() {
         return api.get('/domains').then(res => res.data);
     }
