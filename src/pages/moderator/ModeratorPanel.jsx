@@ -1,25 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+// ✅ FIX: useParams importé ici en haut, pas en bas du fichier (causait une erreur fatale)
 import api from '../../services/api';
 import './ModeratorPanel.css';
 
-/* ══════════════════════════════════════════════
-   Espace Modérateur
-   - Gestion du contenu de la page d'accueil
-   - Publication d'actualités et d'annonces
-   - Mise en avant des projets récents
-   ══════════════════════════════════════════════ */
-
 /* ─── Liste des annonces ─── */
 const AnnouncementList = () => {
-    const [items, setItems]   = useState([]);
-    const [loading, setLoad]  = useState(true);
-    const navigate            = useNavigate();
+    const [items, setItems]  = useState([]);
+    const [loading, setLoad] = useState(true);
+    const navigate           = useNavigate();
 
     const load = () => {
         setLoad(true);
         api.get('/announcements')
             .then(r => setItems(r.data))
+            .catch(() => setItems([]))
             .finally(() => setLoad(false));
     };
     useEffect(load, []);
@@ -63,10 +58,10 @@ const AnnouncementList = () => {
     );
 };
 
-/* ─── Formulaire annonce (création / édition) ─── */
+/* ─── Formulaire annonce ─── */
 const AnnouncementForm = ({ editId }) => {
     const navigate = useNavigate();
-    const [form, setForm] = useState({ titre: '', contenu: '', pinned: false });
+    const [form, setForm]     = useState({ titre: '', contenu: '', pinned: false });
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -100,7 +95,7 @@ const AnnouncementForm = ({ editId }) => {
     return (
         <div className="mod-section">
             <div className="mod-section__head">
-                <h2>{editId ? 'Modifier l\'annonce' : 'Nouvelle annonce'}</h2>
+                <h2>{editId ? "Modifier l'annonce" : 'Nouvelle annonce'}</h2>
                 <button className="btn-back" onClick={() => navigate('/moderateur')}>← Retour</button>
             </div>
             <form className="mod-form" onSubmit={handleSubmit}>
@@ -142,6 +137,12 @@ const AnnouncementForm = ({ editId }) => {
     );
 };
 
+/* ✅ FIX: Wrapper défini avant le composant principal, useParams importé en haut */
+const AnnouncementFormWrapper = () => {
+    const { id } = useParams();
+    return <AnnouncementForm editId={id} />;
+};
+
 /* ══ Panel Modérateur principal ══ */
 const ModerateurPanel = () => (
     <div className="mod-panel container">
@@ -153,18 +154,11 @@ const ModerateurPanel = () => (
             </nav>
         </div>
         <Routes>
-            <Route index      element={<AnnouncementList />} />
-            <Route path="new" element={<AnnouncementForm />} />
+            <Route index         element={<AnnouncementList />} />
+            <Route path="new"    element={<AnnouncementForm />} />
             <Route path="edit/:id" element={<AnnouncementFormWrapper />} />
         </Routes>
     </div>
 );
-
-// Wrapper pour récupérer l'id depuis les params
-import { useParams } from 'react-router-dom';
-const AnnouncementFormWrapper = () => {
-    const { id } = useParams();
-    return <AnnouncementForm editId={id} />;
-};
 
 export default ModerateurPanel;

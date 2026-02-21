@@ -1,21 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
-/**
- * AuthContext
- *
- * Le backend renvoie après /api/auth/signin :
- * { token, type, id, email, nom, prenom, role }
- * où role est une STRING : "ADMIN" | "MODERATEUR" | "UTILISATEUR"
- *
- * On stocke cet objet tel quel dans localStorage sous la clé "user".
- * Toutes les vérifications de rôle utilisent user.role (string).
- */
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
-        // Initialiser depuis localStorage au démarrage
         try {
             const stored = localStorage.getItem('user');
             return stored ? JSON.parse(stored) : null;
@@ -24,35 +13,37 @@ export const AuthProvider = ({ children }) => {
         }
     });
 
-    // ── Helpers de rôle ──────────────────────────────────────────
-    // user.role est une string "MODERATEUR", "ADMIN", "UTILISATEUR"
     const isAdmin = user?.role === 'ADMIN';
     const isModerator = user?.role === 'MODERATEUR' || user?.role === 'ADMIN';
     const isAuthenticated = !!user;
 
-    // ── Login ────────────────────────────────────────────────────
     const login = async (email, password) => {
         const response = await api.post('/auth/signin', { email, password });
         const userData = response.data;
-        // { token, type, id, email, nom, prenom, role }
+        // ✅ FIX: stocker le token séparément pour l'intercepteur api.js
+        localStorage.setItem('token', userData.token);
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         return userData;
     };
 
-    // ── Logout ───────────────────────────────────────────────────
+    // ✅ FIX: fonction register manquante (Register.jsx l'utilise)
+    const register = async (nom, prenom, email, password) => {
+        const response = await api.post('/auth/signup', { nom, prenom, email, password });
+        return response.data;
+    };
+
     const logout = () => {
+        localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
     };
 
-    // ── Token refresh : si localStorage a changé dans un autre onglet
     useEffect(() => {
         const handleStorage = (e) => {
             if (e.key === 'user') {
                 try {
-                    const updated = e.newValue ? JSON.parse(e.newValue) : null;
-                    setUser(updated);
+                    setUser(e.newValue ? JSON.parse(e.newValue) : null);
                 } catch {
                     setUser(null);
                 }
@@ -64,12 +55,8 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{
-            user,
-            isAuthenticated,
-            isAdmin,
-            isModerator,
-            login,
-            logout,
+            user, isAuthenticated, isAdmin, isModerator,
+            login, logout, register,
         }}>
             {children}
         </AuthContext.Provider>
@@ -82,4 +69,6 @@ export const useAuth = () => {
     return ctx;
 };
 
+// ✅ FIX: export named pour Register.jsx et Login.jsx qui utilisent useContext(AuthContext)
+export { AuthContext };
 export default AuthContext;
