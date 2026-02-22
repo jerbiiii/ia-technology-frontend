@@ -1,31 +1,28 @@
-import api from './api.js';
+import api from './api';
 
-class ActualiteService {
-    // Public
-    getActive() {
-        return api.get('/public/actualites').then(res => res.data);
-    }
 
-    // Modérateur/Admin
-    getAll() {
-        return api.get('/moderator/actualites').then(res => res.data);
-    }
+const ActualiteService = {
 
-    getById(id) {
-        return api.get(`/moderator/actualites/${id}`).then(res => res.data);
-    }
+    // ── Lecture (public) ──────────────────────────────────────────────────
+    getAll: () =>
+        api.get('/actualites'),
 
-    create(data) {
-        return api.post('/moderator/actualites', data).then(res => res.data);
-    }
+    getActives: () =>
+        api.get('/public/actualites'),           // homepage : uniquement actif=true
 
-    update(id, data) {
-        return api.put(`/moderator/actualites/${id}`, data).then(res => res.data);
-    }
+    getById: (id) =>
+        api.get(`/actualites/${id}`),
 
-    delete(id) {
-        return api.delete(`/moderator/actualites/${id}`).then(res => res.data);
-    }
-}
+    // ── Écriture (modérateur / admin) ─────────────────────────────────────
+    create: (data) =>
+        api.post('/actualites', data),
 
-export default new ActualiteService();
+    update: (id, data) =>
+        api.put(`/actualites/${id}`, data),
+
+
+    delete: (id) =>
+        api.delete(`/actualites/${id}`),
+};
+
+export default ActualiteService;

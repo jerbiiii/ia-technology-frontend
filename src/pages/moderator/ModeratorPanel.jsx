@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link, NavLink, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import api from '../../services/api';
 import HighlightManagement from './HighlightManagement';
 import HomeContentManagement from './HomeContentManagement';
@@ -34,7 +34,7 @@ const ActualiteList = () => {
         <div className="mod-section">
             <div className="mod-section__head">
                 <h2>Actualités & Annonces</h2>
-                <button className="btn-add" onClick={() => navigate('actualites/new')}>
+                <button className="btn-add" onClick={() => navigate('new')}>
                     + Nouvelle actualité
                 </button>
             </div>
@@ -56,7 +56,7 @@ const ActualiteList = () => {
                             <div className="mod-item__actions">
                                 <button
                                     className="btn-edit"
-                                    onClick={() => navigate(`actualites/edit/${a.id}`, { state: { item: a } })}
+                                    onClick={() => navigate(`edit/${a.id}`, { state: { item: a } })}
                                 >
                                     ✏️ Modifier
                                 </button>
@@ -193,39 +193,18 @@ const ModerateurPanel = () => (
         <div className="mod-panel__header">
             <h1>Espace Modérateur</h1>
             <nav className="mod-panel__nav">
-                {/* ✅ FIX: Liens vers les 3 sections du panel */}
-                <NavLink
-                    to="/moderateur"
-                    end
-                    style={({ isActive }) => ({ fontWeight: isActive ? '800' : '600' })}
-                >
-                    📋 Actualités
-                </NavLink>
-                <NavLink
-                    to="/moderateur/highlights"
-                    style={({ isActive }) => ({ fontWeight: isActive ? '800' : '600' })}
-                >
-                    ⭐ Projets à la une
-                </NavLink>
-                <NavLink
-                    to="/moderateur/home-content"
-                    style={({ isActive }) => ({ fontWeight: isActive ? '800' : '600' })}
-                >
-                    🏗️ Contenu accueil
-                </NavLink>
+                <Link to="/moderateur">📋 Actualités</Link>
+                <Link to="/moderateur/highlights">⭐ Projets à la une</Link>
+                <Link to="/moderateur/home-content">🏗️ Page d'accueil</Link>
                 <Link to="/">🏠 Voir le site</Link>
             </nav>
         </div>
-
         <Routes>
-            {/* ── Actualités ── */}
-            <Route index                       element={<ActualiteList />} />
-            <Route path="actualites/new"       element={<ActualiteForm />} />
-            <Route path="actualites/edit/:id"  element={<ActualiteFormEditWrapper />} />
-
-            {/* ✅ FIX: Nouvelles routes pour Highlights et HomeContent */}
-            <Route path="highlights"           element={<HighlightManagement />} />
-            <Route path="home-content"         element={<HomeContentManagement />} />
+            <Route index            element={<ActualiteList />} />
+            <Route path="new"       element={<ActualiteForm />} />
+            <Route path="edit/:id"  element={<ActualiteFormEditWrapper />} />
+            <Route path="highlights"    element={<HighlightManagement />} />
+            <Route path="home-content"  element={<HomeContentManagement />} />
         </Routes>
     </div>
 );

@@ -1,49 +1,59 @@
 import axios from 'axios';
 
-/**
- * Instance Axios configurée pour l'API IA-Technology
- * Base URL : http://localhost:8080/api
- */
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api',
-    headers: { 'Content-Type': 'application/json' },
-    timeout: 15000,
+    baseURL: 'http://localhost:8080/api',
+    withCredentials: true,
 });
 
-/* ── Intercepteur requêtes : ajouter JWT si présent ── */
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+// ── Intercepteur request : JWT + CSRF ─────────────────────────────────────
 
-/* ── Intercepteur réponses : gérer les 401 ── */
+api.interceptors.request.use(config => {
+    // Lire le token depuis localStorage
+    // AuthContext stocke le token dans 'token' ET dans 'user.token'
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Lire le cookie CSRF et l'envoyer dans le header pour les requêtes non-GET
+    const csrfToken = getCookie('XSRF-TOKEN');
+    if (csrfToken) {
+        config.headers['X-XSRF-TOKEN'] = csrfToken;
+    }
+
+    return config;
+}, error => Promise.reject(error));
+
+// ── Intercepteur response : gestion expiration JWT ────────────────────────
+
+let isRedirecting = false; // garde pour éviter les boucles
+
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // ✅ FIX: Ne rediriger QUE si l'utilisateur était censé être connecté
-            // et qu'on n'est pas déjà sur /login (évite les boucles de redirection).
-            const token = localStorage.getItem('token');
-            const isLoginPage = window.location.pathname === '/login';
+    response => response,
+    error => {
+        if (error.response?.status === 401 && !isRedirecting) {
+            const isLoginRoute = error.config?.url?.includes('/auth/signin');
 
-            if (token && !isLoginPage) {
-                // Token expiré côté serveur — nettoyer et rediriger proprement
+            
+            if (!isLoginRoute) {
+                isRedirecting = true;
+
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
+                window.dispatchEvent(new Event('auth:logout'));
 
-                // ✅ FIX: Utiliser un événement personnalisé que AuthContext peut écouter,
-                // au lieu de window.location.href qui détruit l'état React.
-                window.dispatchEvent(new CustomEvent('auth:logout'));
+                setTimeout(() => { isRedirecting = false; }, 3000);
             }
         }
         return Promise.reject(error);
     }
 );
+
+// ── Utilitaire lecture cookie ──────────────────────────────────────────────
+
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+}
 
 export default api;
